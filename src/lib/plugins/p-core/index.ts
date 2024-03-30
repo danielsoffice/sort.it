@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { v4 as uuid } from 'uuid';
-import type { BoxDef, ThingDef } from '$lib/types';
+import type { BoxDef, ItemDef, OrderDef, ThingDef, pluginInitFunc } from '$lib/types';
 import TextBox from '$lib/components/Items/TextBox.svelte';
 import Link from '$lib/components/Items/Link.svelte';
+import Checkable from '$lib/components/Items/Checkable.svelte';
 
 const config = {
     // proxy: {
@@ -16,28 +17,31 @@ const server = "http://localhost:8000/api/"
 async function fetchThing(id: string, type: "box" | "item") {
     let responseGet = await fetch(`${server + type}/${id}/ `)
     if (responseGet.status !== 200)
-        throw Error(`Failed to get ${type}`)
+        throw Error(responseGet.status.toString())
     return responseGet.json()
 }
-async function addChild(vars: { parent: string, kind: "box" | "item", type: string }) {
+async function addChild(vars: { parent: string, kind: "box" | "item", type: string, optionalData: { [key: string]: any } }) {
+    const optionalData = vars.optionalData ?? {}
     const response = await axios.post(server + vars.kind + "/", {
         parent: vars.parent,
         id: uuid(),
         holds: "core.box",
-        type: vars.type
+        holds_type: "box",
+        type: vars.type,
+        ...optionalData
     }, config).catch((error) => {
         throw new Error('Failed to create child: ' + error)
     })
 
     return response.data
 }
-async function updateThing(vars: { id: string, type: "box" | "item", data: {} }) {
-    const response = await axios.patch(server + vars.type + "/" + vars.id + "/", vars.data, config).catch(() => { throw new Error("Failed to perform Update") })
+async function updateThing(vars: { id: string, kind: "box" | "item", data: {} }) {
+    const response = await axios.patch(server + vars.kind + "/" + vars.id + "/", vars.data, config).catch(() => { throw new Error("Failed to perform Update") })
     return response.data
 }
 
-async function deleteThing(vars: { id: string, type: "box" | "item" }) {
-    const response = await axios.delete(server + vars.type + "/" + vars.id + "/", config).catch((error) => {
+async function deleteThing(vars: { id: string, kind: "box" | "item" }) {
+    const response = await axios.delete(server + vars.kind + "/" + vars.id + "/", config).catch((error) => {
         throw new Error('Failed to Delete Thing')
     })
     return response.data
@@ -45,16 +49,16 @@ async function deleteThing(vars: { id: string, type: "box" | "item" }) {
 
 
 
-const box: Partial<BoxDef> = {
+const box: BoxDef = {
     kind: "box",
+    holds: [],
     sourceFunc: fetchThing,
     createFunc: addChild,
     mutateFunc: updateThing,
     deleteFunc: deleteThing,
-    childrenPassed: true
 }
 
-const item: ThingDef = {
+const item: ItemDef = {
     kind: "item",
     sourceFunc: fetchThing,
     createFunc: addChild,
@@ -63,7 +67,7 @@ const item: ThingDef = {
     component: TextBox
 }
 
-const link: ThingDef = {
+const link: ItemDef = {
     kind: "item",
     sourceFunc: fetchThing,
     createFunc: addChild,
@@ -72,8 +76,50 @@ const link: ThingDef = {
     component: Link
 }
 
-export const init = (registerFunc: Function) => {
-    registerFunc("box", box)
-    registerFunc("item", item)
-    registerFunc("link", link)
+async function fetchCheckables(id: string, type: "box" | "item") {
+    let thing = await fetchThing(id, type);
+    // thing['children'] = [...thing['children'], {
+    //     id: "a",
+    //     parent: id,
+    //     type: "checkable",
+    //     kind: "item",
+    //     content: { text: "fuck you" }
+    // }]
+    thing.content = { text: "dad" }
+    return thing
+
+}
+
+const checkable: ThingDef = {
+    kind: "item",
+    sourceFunc: fetchThing,
+    createFunc: addChild,
+    mutateFunc: updateThing,
+    deleteFunc: deleteThing,
+    component: Checkable
+}
+
+const orderByChecked: OrderDef = {
+    name: "Checked",
+    reversible: true,
+    compareFunc: (
+        child1: Item["content"],
+        child2: Item["content"]
+    ) =>
+        child1.is_checked
+            ? child2.is_checked
+                ? 0
+                : 1
+            : child2.is_checked
+                ? -1
+                : 0
+}
+
+export const init: pluginInitFunc = (registerType, registerOrder) => {
+    registerType("box", box)
+    registerType("item", item)
+    registerType("link", link)
+    registerType("checkable", checkable)
+
+    registerOrder(orderByChecked)
 }

@@ -1,3 +1,7 @@
 export const plugins: string[] = [
-    "calendar"
+    "calendar",
+    "fat"
+]
+export const themes: string[] = [
+    "core"
 ]

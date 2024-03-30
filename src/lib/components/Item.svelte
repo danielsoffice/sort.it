@@ -1,12 +1,11 @@
 <script lang="ts">
     import type { Item } from "$lib/types";
-    import { getContext, onMount } from "svelte";
+    import { getContext, onMount, setContext } from "svelte";
     import type { BoxDef, ItemDef } from "$lib/types";
-    import { useMutation, useQueryClient } from "@sveltestack/svelte-query";
-    import type { Thing } from "$lib/types";
+    import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import Svg from "./SVG.svelte";
 
-    export let item: Thing;
+    export let item: Item;
     export let parent: [string, null | string];
 
     const id = item.id;
@@ -16,36 +15,39 @@
     const parentDef: BoxDef = (getContext("getDef") as Function)(parent[0]);
     const def: ItemDef = (getContext("getDef") as Function)(item.type);
 
-    const invalParent = () => queryClient.invalidateQueries(parent);
-    const invalSelf = () => queryClient.invalidateQueries([item.type, id]);
+    const invalParent = () =>
+        queryClient.invalidateQueries({
+            queryKey: [parent[0], { id: parent[1] }],
+        });
     const updateSelf = (data: Item) => {
-        queryClient.setQueryData([item.type, id], data);
+        queryClient.setQueryData([item.type, { id }], data);
     };
-    const deleteAction = useMutation(
-        parentDef.deleteFunc || (() => ({} as Promise<any>)),
-        {
-            onSuccess: invalParent,
-        }
-    );
-    const updateAction = useMutation(
-        def.mutateFunc || (() => ({} as Promise<any>)),
-        {
-            onSuccess: (data: Item) => updateSelf(data),
-        }
-    );
+    const deleteAction = createMutation({
+        mutationFn: parentDef.deleteFunc || (() => ({} as Promise<any>)),
+
+        onSuccess: invalParent,
+    });
+    const updateAction = createMutation({
+        mutationKey: [item.type, { id, parent: parent[1], type: "update" }],
+        mutationFn: def.mutateFunc || (() => ({} as Promise<any>)),
+
+        onSuccess: (data: Item) => updateSelf(data),
+    });
 
     function deleteEvent() {
         if (!item.content.text)
-            $deleteAction.mutate({ id: id, type: def.kind });
+            $deleteAction.mutate({ id: id, kind: def.kind });
     }
 
     function saveContent(content: object) {
         $updateAction.mutate({
             id: id,
-            type: "item",
+            kind: "item",
             data: { content: content },
         });
     }
+
+    setContext("deleteFunction", deleteEvent);
 
     // function onVisibilityChange(event: any) {
     //     if (saveTimeout >= 1 && document.visibilityState === "hidden")
@@ -62,7 +64,6 @@
         mounted = true;
     });
 
-    let shiftPressed = false;
     function enterPressed({
         key,
         shiftKey,
@@ -108,9 +109,7 @@
         min-height: 25px;
         min-width: 50px;
 
-        color: var(--item-color);
         border-radius: 3px;
-        border: 1px solid var(--item-color);
 
         transition-duration: 0.3s;
         /* user-select: all; */

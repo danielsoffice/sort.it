@@ -8,7 +8,10 @@
     <div>
         <h1>Error</h1>
         <h2>{error.message ?? "Unknown error"}</h2>
-        <h3>Please click <a href="/">here</a> to return to the dashboard.</h3>
+        <h3>
+            We have encountered an error. Please make sure you sent a valid
+            "id".
+        </h3>
     </div>
 </main>
 

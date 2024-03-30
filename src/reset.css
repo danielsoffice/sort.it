@@ -133,3 +133,20 @@ table {
     border-collapse: collapse;
     border-spacing: 0;
 }
+
+button {
+    font: inherit;
+    background: inherit;
+    max-width: 100%;
+    overflow: auto;
+}
+
+textarea {
+    font: inherit;
+    resize: none;
+    rows: 1;
+    border: none;
+    background-color: transparent;
+    resize: none;
+    outline: none;
+}

@@ -1,13 +1,14 @@
 <script lang="ts">
-    import type { v5 } from "uuid";
+    import { dragDropStatus } from "$lib/stores";
     import DataLoader from "./DataLoader.svelte";
-    import { useMutation, useQueryClient } from "@sveltestack/svelte-query";
+    import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import { getContext, setContext } from "svelte";
-    import type { Box, BoxDef } from "$lib/types";
+    import type { Box, BoxDef, Item, OrderDef, ThingDef } from "$lib/types";
     import TypeSelector from "./Controls/TypeSelector.svelte";
     import Svg from "./SVG.svelte";
     import { dndzone } from "svelte-dnd-action";
     import { errorDispatcher } from "$lib/utils";
+    import TextBox from "./Items/TextBox.svelte";
 
     export let id: string;
     export let parent: [string, null | string];
@@ -16,20 +17,55 @@
     let children: { id: string }[] = [];
     $: orderChildren(box.children, box.order);
 
+    const manager = getContext("PluginManager") as PluginManager;
+
     function orderChildren(initChildren: string[], order: object) {
         let childs = initChildren.map((id) => ({ id }));
         let needsFixing = false;
+
+        // TODO: allow box ordering
+        if (box.holds_type == "box") {
+            children = childs;
+            return;
+        }
+
+        const childContent = childs.map(
+            (child) =>
+                queryClient.getQueriesData<Item>({
+                    queryKey: [box.holds, { id: child.id }],
+                })[0][1] as Item,
+        );
+
+        if (box.order) {
+            if (box.order.order === "custom") {
+                console.log("custom");
+            } else if (box.order.order.includes(".")) {
+                const [plugin, orderBy]: string[] = box.order.order.split(".");
+                if(manager.orders[plugin] && manager.orders[plugin][orderBy])
+
+                // if (manager.orders["core"]["Checked"].orderMethod == "compare")
+                //     orderDefinition = manager.orders["core"][
+                //         "Checked"
+                //     ] as OrderDef & { orderMethod: "compare" };
+                // else
+                //     orderDefinition = manager.orders["core"][
+                //         "Checked"
+                //     ] as OrderDef & { orderMethod: "full" };
+
+                // let compareFn = orderDefinition.compareFunc;
+            }
+        }
         if (box.order)
             switch (box.order["order"]) {
                 case "custom":
-                    let temp: { id: string }[] = [];
+                    var temp: { id: string }[] = [];
                     box.order.custom.forEach((index) => {
                         if (index >= childs.length || index <= -1) {
                             errorDispatcher.log(
                                 400,
                                 "Attempted to access invalid index. " +
                                     "ID: " +
-                                    id
+                                    id,
                             );
                             needsFixing = true;
                         } else {
@@ -45,23 +81,51 @@
                         ...childs.filter((child) => child.id != ""),
                     ];
                     childs = structuredClone(temp);
+                    children = childs;
+                    break;
+                case "checked":
+                    if (
+                        manager.orders["core"]["Checked"].orderMethod ==
+                        "compare"
+                    ) {
+                        let orderDefinition = manager.orders["core"][
+                            "Checked"
+                        ] as OrderDef & { orderMethod: "compare" };
+                        childContent.sort((child1, child2) => {
+                            let compareFn = orderDefinition.compareFunc;
+                            return compareFn(child1.content, child2.content);
+                        });
+                    }
+
+                    children = childContent.map((child) => ({ id: child.id }));
                     break;
                 case "default":
+                    children = childContent;
                 default:
                     break;
             }
-        children = childs;
         if (needsFixing) saveCustomOrder();
     }
 
     const queryClient = useQueryClient();
 
-    const parentDef: BoxDef = (getContext("getDef") as Function)(parent[0]);
-    const def: BoxDef = (getContext("getDef") as Function)(box.type);
+    import { useIsMutating } from "@tanstack/svelte-query";
+    import { flip } from "svelte/animate";
+    import { quintOut } from "svelte/easing";
+    import { blur, fade, fly, scale, slide } from "svelte/transition";
+    import type PluginManager from "$lib/plugins";
+    const isMutatingChildren = useIsMutating({
+        mutationKey: [box.holds, { parent: id, type: "update" }],
+    });
+    isMutatingChildren.subscribe((value) => {
+        if (value === 0) orderChildren(box.children, box.order);
+    });
 
-    $: holdsBoxes = box.holds
-        ? (getContext("isBox") as Function)(box.holds)
-        : true;
+    const getDef: (thing: string) => ThingDef = getContext("getDef");
+    const parentDef: BoxDef = getDef(parent[0]) as BoxDef;
+    const def: BoxDef = getDef(box.type) as BoxDef;
+
+    $: holdsBoxes = (getContext("isBox") as Function)(box.holds);
 
     if (!holdsBoxes)
         setContext("makeReal", (content: {}) => {
@@ -70,46 +134,56 @@
 
     let self: HTMLDivElement;
 
-    const invalBox = (boxID: typeof v5) =>
-        queryClient.invalidateQueries(["box", boxID]);
-    const invalSelf = () => queryClient.invalidateQueries(["core.box", id]);
+    const invalSelf = () =>
+        queryClient.invalidateQueries({ queryKey: [box.type, { id }] });
     const updateSelf = (data: Box) => {
-        queryClient.setQueryData(["core.box", id], data);
+        queryClient.setQueriesData({ queryKey: [box.type, { id }] }, data);
     };
-    const invalParent = () => queryClient.invalidateQueries(parent);
-    const deleteAction = useMutation(
-        parentDef.deleteFunc || (() => ({} as Promise<any>)),
-        {
-            onSuccess: invalParent,
-        }
-    );
-
-    const updateAction = useMutation(
-        def.mutateFunc || (() => ({} as Promise<any>)),
-        {
-            onSuccess: (data: Box) => updateSelf(data),
-        }
-    );
-
-    const createAction = useMutation(
-        def.createFunc || (() => ({} as Promise<any>)),
-        {
-            onSuccess: invalSelf,
-        }
-    );
-    function addChildEvent() {
-        $createAction.mutate({
-            parent: id,
-            kind: holdsBoxes ? "box" : "item",
-            type: box.holds,
+    const invalParent = () =>
+        queryClient.invalidateQueries({
+            queryKey: [parent[0], { id: parent[1] }],
         });
+    const deleteAction = createMutation({
+        mutationFn: parentDef.deleteFunc || (() => ({}) as Promise<any>),
+
+        onSuccess: invalParent,
+    });
+
+    const updateAction = createMutation({
+        mutationKey: [box.type, { id, parent: parent[1], type: "update" }],
+        mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
+        onSuccess: (data: Box) => updateSelf(data),
+    });
+
+    const createAction = createMutation({
+        mutationKey: [box.type, { id, parent: parent[1], type: "create" }],
+        mutationFn: def.createFunc || (() => ({}) as Promise<any>),
+
+        onSuccess: invalSelf,
+    });
+    function addChildEvent(optionalData: { [key: string]: any } = {}) {
+        let data: any;
+        $createAction.mutate(
+            {
+                parent: id,
+                type: box.holds,
+                kind: box.holds_type,
+                optionalData,
+            },
+            {
+                onSuccess(datas, variables, context) {
+                    data = structuredClone(datas);
+                },
+            },
+        );
+        return data;
     }
 
     function changeTypeEvent(type: string) {
         $updateAction.mutate({
             id: id,
-            type: "box",
-            data: { holds: type },
+            kind: "box",
+            data: { holds: type, holds_type: getDef(type).kind },
         });
     }
 
@@ -117,14 +191,14 @@
         if (!box.children.length || box.type != "core.box")
             $deleteAction.mutate({
                 id: id,
-                type: "box",
+                kind: "box",
             });
     }
     function saveCustomOrder(newChildren?: { id: string }[]) {
         let customOrder: number[];
         if (newChildren != undefined) {
             customOrder = newChildren.map((child) =>
-                box.children.indexOf(child.id)
+                box.children.indexOf(child.id),
             );
             if (
                 box.order.order == "custom" &&
@@ -133,19 +207,27 @@
                 return;
         } else {
             customOrder = children.map((child) =>
-                box.children.indexOf(child.id)
+                box.children.indexOf(child.id),
             );
         }
 
         $updateAction.mutate({
             id: id,
-            type: "box",
+            kind: "box",
             data: {
                 order: {
                     order: "custom",
                     custom: customOrder,
                 },
             },
+        });
+    }
+
+    function saveContent(content: Record<string, any>) {
+        $updateAction.mutate({
+            id: id,
+            kind: "box",
+            data: { title: content.text },
         });
     }
 
@@ -156,6 +238,8 @@
     function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
         saveCustomOrder(e.detail.items);
     }
+
+    setContext("createFunction", addChildEvent);
 </script>
 
 <div
@@ -169,14 +253,14 @@
         {#if def.createFunc}
             <div>
                 <button on:click={addChildEvent} on:keypress={addChildEvent}
-                    >＋</button
+                    ><Svg icon="plus" /></button
                 >
             </div>
         {/if}
         {#if parentDef.deleteFunc && parent[1] !== null}
             <div>
                 <button on:click={deleteEvent} on:keypress={deleteEvent}
-                    >⨉</button
+                    ><Svg icon="ex" width=".95rem" height=".95rem" /></button
                 >
             </div>
         {/if}
@@ -186,25 +270,37 @@
             </div>
         {/if}
     </div>
-    <input class="title" type="text" value={box.title} />
+    <div>
+        <TextBox
+            content={{ text: box.title ?? "" }}
+            updater={saveContent}
+            rows={1}
+        />
+    </div>
     <div
         class="children"
         class:holdsItems={!holdsBoxes}
         use:dndzone={{
             items: children,
             type: box.copies ? id : box.holds,
-            dragDisabled: holdsBoxes,
+            dragDisabled: holdsBoxes || !$dragDropStatus,
             dropFromOthersDisabled: box.copies,
         }}
         on:consider={handleDndConsider}
         on:finalize={handleDndFinalize}
     >
         {#each children as child (child.id)}
-            <DataLoader
-                parent={[box.type, id]}
-                id={child.id}
-                thing={box.holds}
-            />
+            <div
+                animate:flip={{ duration: 250, easing: quintOut }}
+                in:scale={{ duration: 150 }}
+                out:slide={{ duration: 150, axis: "x" }}
+            >
+                <DataLoader
+                    parent={[box.type, id]}
+                    id={child.id}
+                    thing={box.holds}
+                />
+            </div>
         {/each}
     </div>
     {#if !box.children.length && def.holds.length > 1}
@@ -238,9 +334,7 @@
     }
     .box {
         transition-duration: 0.3s;
-        background-color: white;
-        border: 1px solid var(--box-color);
-        color: var(--box-color);
+        border: 1px solid;
         min-width: var(--box-width);
         margin: 3px;
         border-radius: 3px;
@@ -254,7 +348,7 @@
     .info {
         height: 25px;
         text-align: center;
-        font-size: 60%;
+        font-size: 80%;
     }
     /* .info div {
         display: inline-block;
@@ -268,9 +362,9 @@
         padding: 2px;
     }
     .control-bar {
-        border-bottom: 1px solid var(--box-color);
-        line-height: 1.25;
-        font-size: 0.65rem;
+        border-bottom: 1px solid inherit;
+        /* line-height: 1.25; */
+        font-size: 80%;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
@@ -304,5 +398,10 @@
         border: none;
         border-bottom: 1px solid gray;
         margin-bottom: 5px;
+        background: transparent;
+    }
+    button {
+        /* padding: 0px; */
+        /* height: 1.2rem; */
     }
 </style>

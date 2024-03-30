@@ -1,0 +1,99 @@
+/* body {
+    --box-color: #39cccc;
+    --box-width: 200px;
+
+    --item-color: #2ecc40;
+    --item-color-light: #6ece7933;
+} */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+
+.roboto-mono {
+    font-family: "Roboto Mono", monospace;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* body {
+    font-family: "Roboto Mono", monospace !important;
+} */
+
+:root {
+    --padding: 4px;
+    --item-background: rgba(255, 255, 255, .4);
+    --item-background-hover: rgba(255, 255, 255, .8);
+}
+
+.box {
+    border-color: var(--box-color) !important;
+    color: var(--item-text-color);
+    background: var(--box-background-color);
+}
+
+.box .children .item {
+    margin-block: 2px
+}
+
+.control-bar {
+    border-color: var(--box-control-color) !important;
+    color: var(--box-control-color) !important;
+    padding: var(--padding);
+}
+
+.item {
+    border: 1px solid var(--item-color);
+    color: var(--item-text-color);
+    padding-inline: var(--padding);
+    background: var(--item-background)
+}
+
+.item:hover {
+    background: var(--item-background-hover)
+}
+
+.item {}
+
+body {
+    --box-width: 3rem;
+}
+
+@media (prefers-color-scheme: light) {
+    main {
+        background-color: #DDDDDD;
+    }
+
+    body {
+        --box-color: #0074D9;
+        --box-background-color: #EEEEEE;
+        --box-control-color: white;
+
+        --item-color: transparent;
+        --item-text-color: #111;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        /* --box-color: #7FDBFF; */
+        --box-color: #001f3f;
+        --box-background-color: #001121;
+        --box-control-color: #7FDBFF;
+
+        --item-color: transparent;
+        --item-text-color: #EEEEEE;
+    }
+
+    main,
+    #rail {
+        background-color: #111111;
+    }
+
+    #rail {
+        border-right: 1px inset var(--box-color);
+    }
+
+    .box {}
+
+
+}

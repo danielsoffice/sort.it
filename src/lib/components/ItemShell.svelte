@@ -13,9 +13,7 @@
         min-height: 25px;
         min-width: 50px;
 
-        color: var(--item-color);
         border-radius: 3px;
-        border: 1px solid var(--item-color);
 
         transition-duration: 0.3s;
         /* user-select: none; */

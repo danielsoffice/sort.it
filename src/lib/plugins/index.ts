@@ -1,17 +1,21 @@
 import { plugins } from "./config.js"
-import type { BoxDef, ThingDef } from "$lib/types";
+import type { BoxDef, OrderDef, ThingDef, pluginInitFunc } from "$lib/types";
+import { LogLevel, log } from "$lib/logging";
 
 let defaultAttrs: Partial<ThingDef> = {
     parentTypes: [],
     childTypes: [],
-    childrenPassed: false,
 }
 
 export default class PluginManager {
     PLUGINS: string[]
+
     boxClasses: string[] = []
     itemClasses: string[] = []
     classes: { [plugin: string]: { [name: string]: ThingDef } } = {}
+
+    orders: { [plugin: string]: { [name: string]: OrderDef } } = {}
+
 
 
     constructor() {
@@ -20,13 +24,20 @@ export default class PluginManager {
     }
     async loadPlugins() {
         for (const plugin of this.PLUGINS) {
-            let register = (name: string, thing: ThingDef) => this.registerType(plugin, name, thing)
-            let initFunc = (await import(`./p-${plugin}/index.ts`)).init
-            initFunc(register)
+            let registerType = (name: string, thing: ThingDef) => this.registerType(plugin, name, thing)
+            let registerOrder = (order: OrderDef) => this.registerOrder(plugin, order)
+            let initFunc: pluginInitFunc;
+            try {
+                initFunc = (await import(`./p-${plugin}/index.ts`)).init
+            } catch (e) {
+                log(LogLevel.Error, `Plugin '${plugin}' is either not installed or is invalid.`)
+                continue;
+            }
+            initFunc(registerType, registerOrder)
         }
         for (const item of this.boxClasses) {
             let thing = this.getDef(item) as BoxDef
-            if (thing.holds == undefined)
+            if (thing.holds.length === 0)
                 thing.holds = [...this.boxClasses, ...this.itemClasses]
 
         }
@@ -37,20 +48,26 @@ export default class PluginManager {
     }
 
     registerType(plugin: string, name: string, thing: ThingDef) {
-        let newClass = {
-            type: thing.kind,
+        const newClass = {
             ...defaultAttrs,
             ...thing
         }
+
+        if (!this.classes[plugin])
+            this.classes[plugin] = {}
+        this.classes[plugin][name] = newClass
+
         if (thing.kind == "box")
             this.boxClasses.push(`${plugin}.${name}`)
         else
             this.itemClasses.push(`${plugin}.${name}`)
 
-        if (!this.classes[plugin])
-            this.classes[plugin] = {}
-        this.classes[plugin][name] = newClass
     }
 
-    registerSortAlg() { }
+    registerOrder(plugin: string, order: OrderDef) {
+        if (!this.orders[plugin])
+            this.orders[plugin] = {}
+        this.orders[plugin][order.name] = order;
+    }
+
 }

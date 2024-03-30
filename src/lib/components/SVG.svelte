@@ -1,8 +1,8 @@
 <script lang="ts">
     export let icon: string;
     export let rotate = 0;
-    export let width = 16;
-    export let height = 16;
+    export let width = "1.1rem";
+    export let height = "1.1rem";
 </script>
 
 {#if icon == "link"}
@@ -73,6 +73,33 @@
     >
         <path
             d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"
+        />
+    </svg>
+{:else if icon == "plus"}
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        {width}
+        {height}
+        fill="currentColor"
+        class="bi bi-plus-lg"
+        viewBox="0 0 16 16"
+    >
+        <path
+            fill-rule="evenodd"
+            d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"
+        />
+    </svg>
+{:else if icon == "ex"}
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        {width}
+        {height}
+        fill="currentColor"
+        class="bi bi-plus-lg"
+        viewBox="0 0 16 16"
+    >
+        <path
+            d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"
         />
     </svg>
 {/if}

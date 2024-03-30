@@ -1,20 +1,50 @@
 <script lang="ts">
     import type { Item } from "$lib/types";
-    import { onMount } from "svelte";
+    import { getContext, onMount } from "svelte";
 
     export let content: Item["content"];
     export let key = "text";
     export let updater: Function;
-    export let fake: boolean;
+    export let fake: boolean = false;
+    export let rows: number = 2;
 
     $: text = content[key] ?? "";
 
-    function keyPressed(event: any) {
-        if (event.key == "Enter") {
+    const deleteFunc: () => void = getContext("deleteFunction");
+    const createFunc: (optionalData?: { [key: string]: any }) => void =
+        getContext("createFunction");
+
+    function keyPressed(
+        event: KeyboardEvent & {
+            currentTarget: EventTarget & HTMLTextAreaElement;
+        },
+    ) {
+        if (event.key == "Backspace") {
+            if (event.currentTarget.value === "") {
+                deleteFunc();
+            }
+        } else if (event.key == "Enter") {
+            createFunc();
         }
     }
 
-    let saveTimeout: number = 0;
+    function textPasted(
+        event: ClipboardEvent & {
+            currentTarget: EventTarget & HTMLTextAreaElement;
+        },
+    ) {
+        const text = event.clipboardData?.getData("text");
+        if (!text || !text.includes("\n")) return;
+
+        event.preventDefault();
+        const lines = text.split("\n");
+        performUpdate(lines.splice(0, 1)[0]);
+        lines.forEach((line: string) => {
+            createFunc({ content: { text: line } });
+        });
+    }
+
+    let saveTimeout: NodeJS.Timeout;
     function saveContent(event: any) {
         if (!mounted) return;
         clearTimeout(saveTimeout);
@@ -36,24 +66,31 @@
     onMount(() => (mounted = true));
 </script>
 
-<input
-    type="text"
+<textarea
     value={text}
     on:input={saveContent}
     on:keydown={keyPressed}
+    on:paste={textPasted}
     placeholder={fake ? "Type to Create" : ""}
+    {rows}
 />
 
 <style>
-    input {
+    textarea {
+        resize: none;
         display: block;
         width: 100%;
-        height: 100%;
+        height: auto;
         box-sizing: border-box;
         text-decoration: inherit;
         border: none;
-        font-size: 14px;
         outline: none;
         user-select: contain !important;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+
+        padding: 0px;
+        margin: 2px;
     }
 </style>

@@ -4,7 +4,6 @@
 <head>
 	<meta charset="utf-8" />
 	<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-	<link rel="style" href="%sveltekit.assets%/reset.css" />
 	<meta name="viewport" content="width=device-width" />
 	%sveltekit.head%
 </head>
@@ -31,5 +30,10 @@
 
 	*:global {
 		box-sizing: border-box;
+	}
+
+	body {
+		display: flex;
+		flex-direction: row;
 	}
 </style>
