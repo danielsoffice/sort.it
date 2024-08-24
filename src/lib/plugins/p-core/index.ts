@@ -4,6 +4,8 @@ import type { BoxDef, ItemDef, OrderDef, ThingDef, pluginInitFunc } from '$lib/t
 import TextBox from '$lib/components/Items/TextBox.svelte';
 import Link from '$lib/components/Items/Link.svelte';
 import Checkable from '$lib/components/Items/Checkable.svelte';
+import RichText from '$lib/components/Items/RichText.svelte';
+import Embed from '$lib/components/Items/Embed.svelte';
 
 const config = {
     // proxy: {
@@ -67,6 +69,15 @@ const item: ItemDef = {
     component: TextBox
 }
 
+const richText: ItemDef = {
+    kind: "item",
+    sourceFunc: fetchThing,
+    createFunc: addChild,
+    mutateFunc: updateThing,
+    deleteFunc: deleteThing,
+    component: RichText
+}
+
 const link: ItemDef = {
     kind: "item",
     sourceFunc: fetchThing,
@@ -74,6 +85,15 @@ const link: ItemDef = {
     mutateFunc: updateThing,
     deleteFunc: deleteThing,
     component: Link
+}
+
+const embed: ItemDef = {
+    kind: "item",
+    sourceFunc: fetchThing,
+    createFunc: addChild,
+    mutateFunc: updateThing,
+    deleteFunc: deleteThing,
+    component: Embed
 }
 
 async function fetchCheckables(id: string, type: "box" | "item") {
@@ -102,6 +122,7 @@ const checkable: ThingDef = {
 const orderByChecked: OrderDef = {
     name: "Checked",
     reversible: true,
+    orderMethod: "compare",
     compareFunc: (
         child1: Item["content"],
         child2: Item["content"]
@@ -115,11 +136,24 @@ const orderByChecked: OrderDef = {
                 : 0
 }
 
+const orderByAlphabetical: OrderDef = {
+    name: "Alphabetical",
+    reversible: true,
+    orderMethod: "compare",
+    compareFunc: (child1: Item["content"], child2: Item["content"]) =>
+        child1.text?.toLowerCase() < child2.text?.toLowerCase() ?
+            -1 : child1.text?.toLowerCase() > child2.text?.toLowerCase() ? 1 : 0
+    ,
+}
+
 export const init: pluginInitFunc = (registerType, registerOrder) => {
     registerType("box", box)
     registerType("item", item)
+    registerType("richtext", richText)
     registerType("link", link)
     registerType("checkable", checkable)
+    registerType("embed", embed)
 
     registerOrder(orderByChecked)
+    registerOrder(orderByAlphabetical)
 }

@@ -21,8 +21,6 @@
 
 :root {
     --padding: 4px;
-    --item-background: rgba(255, 255, 255, .4);
-    --item-background-hover: rgba(255, 255, 255, .8);
 }
 
 .box {
@@ -52,10 +50,52 @@
     background: var(--item-background-hover)
 }
 
-.item {}
+button {
+    border-radius: 5px;
+    background: var(--item-background);
+    /* border: none; */
+}
+
+button.btn, .icon-btn {
+    background-color: rgba(var(--detail-contrast), 0.1);
+}
+
+button.btn {
+    padding: 3px 5px;
+    border-width: 1px;
+}
+
+button.icon-btn {
+    border-radius: 5px;
+    border-width: 1px;
+    cursor: pointer;
+}
+
+.icon-btn:not(:hover) {
+    border-color: transparent;
+}
+
+.icon-btn:hover,
+.icon-btn:focus {
+    border-width: 1px;
+}
+
+
+button:hover {
+    background: var(--item-background-hover);
+}
+
+button.icon {
+    aspect-ratio: 1;
+}
 
 body {
     --box-width: 3rem;
+    color: var(--item-text-color);
+}
+
+main {
+    overflow: auto;
 }
 
 @media (prefers-color-scheme: light) {
@@ -70,6 +110,11 @@ body {
 
         --item-color: transparent;
         --item-text-color: #111;
+
+        --item-background: rgba(255, 255, 255, .5);
+        --item-background-hover: rgba(255, 255, 255, 1);
+
+        --detail-contrast: 0, 0, 0;
     }
 }
 
@@ -82,6 +127,12 @@ body {
 
         --item-color: transparent;
         --item-text-color: #EEEEEE;
+
+        --item-background: rgba(255, 255, 255, .15);
+        --item-background-hover: rgba(255, 255, 255, .25);
+
+        --detail-contrast: 255, 255, 255;
+        --detail-contrast-alt: 0, 0, 0;
     }
 
     main,

@@ -36,16 +36,20 @@
         border: none;
         font-size: inherit;
         color: inherit;
-        background: transparent;
         cursor: inherit;
         text-align: center;
+        background-color: var(--box-color);
+        height: 100%;
     }
     option {
         margin: 0px;
         padding: 0px;
         border: none;
         font-size: inherit;
-        color: initial;
-        cursor: inherit;
+        color: var(--detail-contrast);
+        cursor: pointer;
+    }
+    option:hover {
+        box-shadow: 0 0 10px 100px green inset;
     }
 </style>

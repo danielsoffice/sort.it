@@ -15,6 +15,7 @@ export default class PluginManager {
     classes: { [plugin: string]: { [name: string]: ThingDef } } = {}
 
     orders: { [plugin: string]: { [name: string]: OrderDef } } = {}
+    orderList: string[] = ['default', 'custom']
 
 
 
@@ -23,7 +24,8 @@ export default class PluginManager {
         this.PLUGINS = [...plugins, "core"]
     }
     async loadPlugins() {
-        for (const plugin of this.PLUGINS) {
+        let pluginsToLoad = structuredClone(this.PLUGINS)
+        for (const plugin of pluginsToLoad) {
             let registerType = (name: string, thing: ThingDef) => this.registerType(plugin, name, thing)
             let registerOrder = (order: OrderDef) => this.registerOrder(plugin, order)
             let initFunc: pluginInitFunc;
@@ -31,6 +33,7 @@ export default class PluginManager {
                 initFunc = (await import(`./p-${plugin}/index.ts`)).init
             } catch (e) {
                 log(LogLevel.Error, `Plugin '${plugin}' is either not installed or is invalid.`)
+                this.PLUGINS = this.PLUGINS.filter(currPlugin => currPlugin != plugin)
                 continue;
             }
             initFunc(registerType, registerOrder)
@@ -68,6 +71,7 @@ export default class PluginManager {
         if (!this.orders[plugin])
             this.orders[plugin] = {}
         this.orders[plugin][order.name] = order;
+        this.orderList.push(`${plugin}.${order.name}`)
     }
 
 }

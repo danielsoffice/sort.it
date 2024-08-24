@@ -4,6 +4,7 @@
     import type { BoxDef, ItemDef } from "$lib/types";
     import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import Svg from "./SVG.svelte";
+    import {dragHandle} from "svelte-dnd-action";
 
     export let item: Item;
     export let parent: [string, null | string];
@@ -20,17 +21,16 @@
             queryKey: [parent[0], { id: parent[1] }],
         });
     const updateSelf = (data: Item) => {
-        queryClient.setQueryData([item.type, { id }], data);
+        queryClient.setQueryData([item.type, { id, parent: parent[1] }], data);
     };
     const deleteAction = createMutation({
-        mutationFn: parentDef.deleteFunc || (() => ({} as Promise<any>)),
+        mutationFn: parentDef.deleteFunc || (() => ({}) as Promise<any>),
 
         onSuccess: invalParent,
     });
     const updateAction = createMutation({
         mutationKey: [item.type, { id, parent: parent[1], type: "update" }],
-        mutationFn: def.mutateFunc || (() => ({} as Promise<any>)),
-
+        mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
         onSuccess: (data: Item) => updateSelf(data),
     });
 
@@ -97,8 +97,8 @@
         updater={saveContent}
         fake={id == ""}
     />
-    <div>
-        <Svg icon="options" />
+    <div use:dragHandle >
+        <Svg icon="grip-vertical" />
     </div>
 </div>
 

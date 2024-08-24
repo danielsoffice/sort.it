@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { dragDropStatus } from "$lib/stores";
+    import {dragDropStatus, readOnlyStatus} from "$lib/stores";
     import DataLoader from "./DataLoader.svelte";
     import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import { getContext, setContext } from "svelte";
     import type { Box, BoxDef, Item, OrderDef, ThingDef } from "$lib/types";
     import TypeSelector from "./Controls/TypeSelector.svelte";
     import Svg from "./SVG.svelte";
-    import { dndzone } from "svelte-dnd-action";
+    import {dndzone, dragHandleZone, SHADOW_ITEM_MARKER_PROPERTY_NAME} from "svelte-dnd-action";
     import { errorDispatcher } from "$lib/utils";
     import TextBox from "./Items/TextBox.svelte";
 
@@ -14,97 +14,122 @@
     export let parent: [string, null | string];
     export let box: Box;
 
+    let reverseOrder: 1 | -1 = 1;
     let children: { id: string }[] = [];
-    $: orderChildren(box.children, box.order);
+    $: orderChildren(box.children, box.order, reverseOrder);
 
     const manager = getContext("PluginManager") as PluginManager;
 
-    function orderChildren(initChildren: string[], order: object) {
-        let childs = initChildren.map((id) => ({ id }));
-        let needsFixing = false;
+    /**
+     * Responsible for initial order as well as re-ordering if list of children or order changes.
+     * The box component re-renders when children is assigned, so it is assigned once before completion.
+     * @param initChildren
+     * @param order
+     */
+    function orderChildren(
+        initChildren: string[],
+        order: object,
+        reverse: 1 | -1,
+    ) {
+        let workingChildren = initChildren.map((id) => ({ id }));
 
         // TODO: allow box ordering
         if (box.holds_type == "box") {
-            children = childs;
-            return;
+            return (children = workingChildren);
         }
-
-        const childContent = childs.map(
-            (child) =>
-                queryClient.getQueriesData<Item>({
-                    queryKey: [box.holds, { id: child.id }],
-                })[0][1] as Item,
-        );
 
         if (box.order) {
             if (box.order.order === "custom") {
-                console.log("custom");
-            } else if (box.order.order.includes(".")) {
-                const [plugin, orderBy]: string[] = box.order.order.split(".");
-                if(manager.orders[plugin] && manager.orders[plugin][orderBy])
+                let needsCustomOverwrite = false;
 
-                // if (manager.orders["core"]["Checked"].orderMethod == "compare")
-                //     orderDefinition = manager.orders["core"][
-                //         "Checked"
-                //     ] as OrderDef & { orderMethod: "compare" };
-                // else
-                //     orderDefinition = manager.orders["core"][
-                //         "Checked"
-                //     ] as OrderDef & { orderMethod: "full" };
+                if (!box.order.custom) {
+                    children = workingChildren;
+                    saveCustomOrder();
+                    return;
+                }
 
-                // let compareFn = orderDefinition.compareFunc;
+                var temp: { id: string }[] = [];
+                box.order.custom.forEach((index) => {
+                    if (index >= workingChildren.length || index <= -1) {
+                        errorDispatcher.log(
+                            400,
+                            "Attempted to access invalid index. " + "ID: " + id,
+                        );
+                        needsCustomOverwrite = true;
+                    } else {
+                        let spliced = workingChildren.splice(index, 1, {
+                            id: "",
+                        })[0];
+                        if (spliced.id) temp.push(spliced);
+                    }
+                });
+
+                temp = [
+                    ...temp,
+                    ...workingChildren.filter((child) => child.id != ""),
+                ];
+                workingChildren = structuredClone(temp);
+                children = workingChildren;
+
+                if (needsCustomOverwrite) saveCustomOrder();
+            }
+            // return if order.order is invalid
+            if (!box.order.order.includes(".")) {
+                children = workingChildren;
+                return;
+            }
+            const [plugin, orderBy]: string[] = box.order.order.split(".");
+            // return if specified order is undefined
+            if (!manager.orders[plugin] || !manager.orders[plugin][orderBy]) {
+                children = workingChildren;
+                return;
+            }
+
+            // all other ordering relies on data beyond the ids
+            const childrenWithContent = workingChildren.map(
+                (child) =>
+                    queryClient.getQueriesData<Item>({
+                        queryKey: [box.holds, { id: child.id }],
+                    })[0][1] as Item,
+            );
+
+            // necessary step to avoid TypeScript errors
+            manager.orders[plugin][orderBy].orderMethod = manager.orders[
+                plugin
+            ][orderBy].hasOwnProperty("compareFunc")
+                ? "compare"
+                : "full";
+
+            //
+            if (manager.orders[plugin][orderBy].orderMethod == "compare") {
+                const orderDefinition = manager.orders[plugin][
+                    orderBy
+                ] as OrderDef & { orderMethod: "compare" };
+
+                childrenWithContent.sort(
+                    (child1, child2) =>
+                        orderDefinition.compareFunc(
+                            child1.content,
+                            child2.content,
+                        ) * reverse,
+                );
+
+                // if (reverse) childrenWithContent.reverse();
+
+                children = childrenWithContent.map((child) => ({
+                    id: child.id,
+                }));
+            } else {
+                const orderDefinition = manager.orders[plugin][
+                    orderBy
+                ] as OrderDef & { orderMethod: "full" };
+
+                console.log("Order unhandled: ", orderDefinition.name);
+
+                children = workingChildren;
+                return;
             }
         }
-        if (box.order)
-            switch (box.order["order"]) {
-                case "custom":
-                    var temp: { id: string }[] = [];
-                    box.order.custom.forEach((index) => {
-                        if (index >= childs.length || index <= -1) {
-                            errorDispatcher.log(
-                                400,
-                                "Attempted to access invalid index. " +
-                                    "ID: " +
-                                    id,
-                            );
-                            needsFixing = true;
-                        } else {
-                            let spliced = childs.splice(index, 1, {
-                                id: "",
-                            })[0];
-                            if (spliced.id) temp.push(spliced);
-                        }
-                    });
-
-                    temp = [
-                        ...temp,
-                        ...childs.filter((child) => child.id != ""),
-                    ];
-                    childs = structuredClone(temp);
-                    children = childs;
-                    break;
-                case "checked":
-                    if (
-                        manager.orders["core"]["Checked"].orderMethod ==
-                        "compare"
-                    ) {
-                        let orderDefinition = manager.orders["core"][
-                            "Checked"
-                        ] as OrderDef & { orderMethod: "compare" };
-                        childContent.sort((child1, child2) => {
-                            let compareFn = orderDefinition.compareFunc;
-                            return compareFn(child1.content, child2.content);
-                        });
-                    }
-
-                    children = childContent.map((child) => ({ id: child.id }));
-                    break;
-                case "default":
-                    children = childContent;
-                default:
-                    break;
-            }
-        if (needsFixing) saveCustomOrder();
     }
 
     const queryClient = useQueryClient();
@@ -112,18 +137,41 @@
     import { useIsMutating } from "@tanstack/svelte-query";
     import { flip } from "svelte/animate";
     import { quintOut } from "svelte/easing";
-    import { blur, fade, fly, scale, slide } from "svelte/transition";
+    import { blur, fade } from "svelte/transition";
     import type PluginManager from "$lib/plugins";
+    import PopupMenu from "./PopupMenu.svelte";
+    import PopupModal from "$lib/components/PopupModal.svelte";
     const isMutatingChildren = useIsMutating({
         mutationKey: [box.holds, { parent: id, type: "update" }],
-    });
-    isMutatingChildren.subscribe((value) => {
-        if (value === 0) orderChildren(box.children, box.order);
     });
 
     const getDef: (thing: string) => ThingDef = getContext("getDef");
     const parentDef: BoxDef = getDef(parent[0]) as BoxDef;
-    const def: BoxDef = getDef(box.type) as BoxDef;
+    let def: BoxDef = getDef(box.type) as BoxDef;
+
+    let deleteAction;
+    let updateAction;
+    let createAction;
+    let fakeMutation = createMutation({
+        mutationFn: ()=>console.log("Read-only mode prevented write.")
+    })
+
+    let savedMutations: {[key: string]: any};
+    readOnlyStatus.subscribe((status: boolean)=>{
+        if(status){
+            savedMutations = {
+                createAction: createAction,
+                updateAction: updateAction,
+                deleteAction: deleteAction
+            }
+            createAction = fakeMutation;
+            updateAction = fakeMutation;
+            deleteAction = fakeMutation;
+        } else if (savedMutations){
+            ({deleteAction, updateAction, createAction} = savedMutations);
+            console.log("Read mode disabled")
+        }
+    })
 
     $: holdsBoxes = (getContext("isBox") as Function)(box.holds);
 
@@ -143,24 +191,29 @@
         queryClient.invalidateQueries({
             queryKey: [parent[0], { id: parent[1] }],
         });
-    const deleteAction = createMutation({
+    deleteAction = createMutation({
         mutationFn: parentDef.deleteFunc || (() => ({}) as Promise<any>),
 
         onSuccess: invalParent,
     });
 
-    const updateAction = createMutation({
+    updateAction = createMutation({
         mutationKey: [box.type, { id, parent: parent[1], type: "update" }],
         mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
         onSuccess: (data: Box) => updateSelf(data),
     });
 
-    const createAction = createMutation({
+    createAction = createMutation({
         mutationKey: [box.type, { id, parent: parent[1], type: "create" }],
         mutationFn: def.createFunc || (() => ({}) as Promise<any>),
 
         onSuccess: invalSelf,
     });
+
+    isMutatingChildren.subscribe((value) => {
+        if (value === 0) orderChildren(box.children, box.order, reverseOrder);
+    });
+
     function addChildEvent(optionalData: { [key: string]: any } = {}) {
         let data: any;
         $createAction.mutate(
@@ -231,15 +284,46 @@
         });
     }
 
+    function saveResize(width: number){
+        $updateAction.mutate({
+            id: id,
+            kind: "box",
+            data: { geometry: {width} },
+        });
+    }
+
+    // console.log(saveResize)
+
     function handleDndConsider(e: CustomEvent<DndEvent<any>>) {
-        console.log(e);
-        children = e.detail.items;
+        // children = e.detail.items
+        console.log(e.detail.items);
+        // children = e.detail.items;
     }
     function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
-        saveCustomOrder(e.detail.items);
+        // children = e.detail.items
+        // saveCustomOrder(e.detail.items);
+        console.log(children)
+
     }
 
     setContext("createFunction", addChildEvent);
+
+    function updateOrder(name: string) {
+        $updateAction.mutate({
+            id: id,
+            kind: "box",
+            data: {
+                order: {
+                    ...box.order,
+                    order: name,
+                },
+            },
+        });
+    }
+
+    const enableAnimations = true;
+
+    let controlBarVisible = true;
 </script>
 
 <div
@@ -250,25 +334,71 @@
     data-id={id}
 >
     <div class="control-bar">
-        {#if def.createFunc}
-            <div>
-                <button on:click={addChildEvent} on:keypress={addChildEvent}
-                    ><Svg icon="plus" /></button
-                >
-            </div>
+        {#if controlBarVisible}
+            {#if def.createFunc}
+                <div>
+                    <button
+                        class="icon-btn"
+                        on:click={addChildEvent}
+                        on:keypress={addChildEvent}><Svg icon="plus" /></button
+                    >
+                </div>
+            {/if}
+            {#if parentDef.deleteFunc && parent[1] !== null && false}
+                <div>
+                    <button
+                        class="icon-btn"
+                        on:click={deleteEvent}
+                        on:keypress={deleteEvent}
+                        ><Svg
+                            icon="ex"
+                            width=".95rem"
+                            height=".95rem"
+                        /></button
+                    >
+                </div>
+            {/if}
+            {#if box.holds_type === "item"}
+                <PopupMenu>
+                    <svelte:fragment slot="button">
+                        <Svg icon="order" />
+                    </svelte:fragment>
+                    <svelte:fragment slot="menu">
+                        <div id="order-dropdown">
+                            <button
+                                class="icon-btn"
+                                on:click={() => {
+                                    reverseOrder *= -1;
+                                }}
+                            >
+                                {#if reverseOrder === 1}
+                                    <Svg icon="order-ascending" />
+                                {:else}
+                                    <Svg icon="order-descending" />
+                                {/if}
+                            </button>
+                            <TypeSelector
+                                holds={manager.orderList}
+                                initVal={box.order
+                                    ? box.order.order
+                                    : "default"}
+                                changeTypeEvent={updateOrder}
+                            />
+                        </div>
+                    </svelte:fragment>
+                </PopupMenu>
+            {/if}
+        {:else}
+            <h4 contenteditable={true}>{box.title}</h4>
         {/if}
-        {#if parentDef.deleteFunc && parent[1] !== null}
-            <div>
-                <button on:click={deleteEvent} on:keypress={deleteEvent}
-                    ><Svg icon="ex" width=".95rem" height=".95rem" /></button
-                >
-            </div>
-        {/if}
-        {#if true}
-            <div class="options">
+        <div>
+            <button
+                class=" icon-btn"
+                on:click={() => (controlBarVisible = !controlBarVisible)}
+            >
                 <Svg icon="options" />
-            </div>
-        {/if}
+            </button>
+        </div>
     </div>
     <div>
         <TextBox
@@ -291,9 +421,13 @@
     >
         {#each children as child (child.id)}
             <div
-                animate:flip={{ duration: 250, easing: quintOut }}
-                in:scale={{ duration: 150 }}
-                out:slide={{ duration: 150, axis: "x" }}
+                    data-is-dnd-shadow-item-hint={child[SHADOW_ITEM_MARKER_PROPERTY_NAME]}
+                animate:flip={{
+                    duration: enableAnimations ? 250 : 0,
+                    easing: quintOut,
+                }}
+                in:fade={{ duration: enableAnimations ? 400 : 0 }}
+                out:blur={{ duration: enableAnimations ? 400 : 0 }}
             >
                 <DataLoader
                     parent={[box.type, id]}
@@ -360,6 +494,7 @@
     .options {
         flex: 0 0 16px;
         padding: 2px;
+        display: contents;
     }
     .control-bar {
         border-bottom: 1px solid inherit;
@@ -374,14 +509,12 @@
         overflow: hidden;
         color: white;
     }
-    .control-bar button {
-        background-color: transparent;
-        border: none;
-        color: inherit;
-        cursor: pointer;
+
+    #order-dropdown {
+        display: flex;
     }
 
-    :global(.control-bar div) {
+    :global(.control-bar > div) {
         flex: 1 1 auto;
         text-align: center;
     }
@@ -399,9 +532,5 @@
         border-bottom: 1px solid gray;
         margin-bottom: 5px;
         background: transparent;
-    }
-    button {
-        /* padding: 0px; */
-        /* height: 1.2rem; */
     }
 </style>

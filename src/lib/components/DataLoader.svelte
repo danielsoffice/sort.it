@@ -24,6 +24,7 @@
     const queryResult: CreateQueryResult<Box | Item | any> = createQuery({
         retry: (failureCount: number, error: any) => failureCount <= 2,
         queryKey: [thing, { id, parent: parent[1] }],
+        notifyOnChangeProps: ["data"],
         queryFn: async () => {
             if (id == "id:dnd-shadow-placeholder-0000") {
                 return {

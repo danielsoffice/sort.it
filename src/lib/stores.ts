@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 
-function createDragDropStatus() {
-    const { subscribe, set, update } = writable(false);
+function createBoolStore(initVal = false) {
+    const { subscribe, set, update } = writable(initVal);
 
     return {
         subscribe,
@@ -11,4 +11,6 @@ function createDragDropStatus() {
     };
 }
 
-export const dragDropStatus = createDragDropStatus();
+export const dragDropStatus = createBoolStore();
+export const readOnlyStatus = createBoolStore();
+

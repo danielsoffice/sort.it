@@ -18,18 +18,19 @@ export type ViewOptions = {
 }
 
 interface ThingDefGen {
-    sourceFunc: (id: string, type: "box" | "item", viewSelections?: ViewOptions) => Promise<Box | Item>
-    createFunc?: (vars: { parent: string, kind: "box" | "item", type: string, optionalData: { [key: string]: any } }) => Promise<any>
+    sourceFunc: (id: string, type: "box" | "item", viewSelections?: ViewOptions) => Promise<Box | Item> | Box | Item
     mutateFunc?: (vars: { id: string, kind: "box" | "item", data: {} }) => Promise<any>
     deleteFunc?: (vars: { id: string, kind: "box" | "item" }) => Promise<any>
     parentTypes?: string[]
     draggable?: boolean
 }
 interface BoxDefn {
+    createFunc?: (vars: { parent: string, kind: "box" | "item", type: string, optionalData: { [key: string]: any } }) => Promise<any>
     kind: "box"
     holds: string[]
     childTypes?: string[]
     viewOptions?: ViewOptionsDef
+    classes?: string
 }
 interface ItemDefn {
     kind: "item"
