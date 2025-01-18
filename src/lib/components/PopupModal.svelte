@@ -4,6 +4,7 @@
     import Backdrop from "$lib/components/Items/Backdrop.svelte";
 
     export let buttonClasses = "icon-btn";
+    export let title = "Boxlify Modal";
 
     let modal: HTMLDivElement;
 
@@ -19,24 +20,15 @@
     let modalOpen = false;
 
     function buttonClicked(
-        event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
+        _event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
     ) {
         modalOpen = !modalOpen;
-        modal.style.display = modalOpen ? "block" : "none";
-        // computePosition(document, menu, {
-        //     placement: "bottom-end",
-        //     middleware: [shiftByOnePixel],
-        // }).then(({ x, y }: { x: number; y: number }) => {
-        //     Object.assign(menu.style, {
-        //         left: `${x}px`,
-        //         top: `${y}px`,
-        //     });
-        // });
+        modal.style.display = modalOpen ? "flex" : "none";
     }
 </script>
 {#if modalOpen}
-<Backdrop/>
-    {/if}
+    <Backdrop/>
+{/if}
 <button class={buttonClasses} on:click={buttonClicked}>
     <slot name="button" />
 </button>
@@ -47,7 +39,7 @@
 <!--        </div>-->
         <div><h2 class="modal-title">
             <slot name="modal-title">
-                Sort.It Modal
+                {title}
             </slot>
         </h2></div>
         <div>
@@ -55,7 +47,7 @@
                 <button
                         on:click={buttonClicked}
                         class="icon-btn"
-                       ><Svg icon="ex" /></button
+                       ><Svg icon="ex" width="1.75rem"/></button
                 >
             </div>
         </div>
@@ -67,6 +59,7 @@
 <style>
     div.popup-modal {
         display: none;
+        flex-direction: column;
         position: absolute;
         min-width: 150px;
         height: 80%;

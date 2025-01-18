@@ -8,18 +8,18 @@
     let error = $page.error as App.Error;
 
     onMount(()=>{
-        if(error.message === "no id"){
-            goto("/?id=" + uuid())
-        }
+        // if(error.message === "no id"){
+        //     goto("/?id=" + uuid())
+        // }
     })
     
 </script>
 
 <main>
     <div>
-        <h1>Sort.It has encountered an Error</h1>
-        <h2>Error Type: <code>{error.message ?? "Unknown error"}</code></h2>
-        <h3>More Info:
+        <h1>Boxlify has encountered an error :(</h1>
+        <h2>Error type: <code>{error.message ?? "Unknown error"}</code></h2>
+        <h3>More info: 
             <code>We have encountered an error. Please make sure you sent a valid
             "id".</code>
         </h3>
@@ -36,5 +36,9 @@
     }
     div {
         text-align: center;
+    }
+    code {
+        background: rgba(100,100,100,0.3);
+        padding: 3px 5px;
     }
 </style>

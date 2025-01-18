@@ -1,23 +1,26 @@
 <script lang="ts">
-    import {dragDropStatus, readOnlyStatus} from "$lib/stores";
+    import {preferences} from "$lib/stores";
     import { onMount } from "svelte";
-    let zoom = 16;
+    import Svg from "$lib/components/SVG.svelte";
+
 
     function changeZoom(amount: number) {
-        if (amount < 0 && zoom == 8) return;
-        if (amount > 0 && zoom == 64) return;
-        zoom += amount;
-        document.documentElement.style.fontSize = zoom + "px";
+        if (amount < 0 && $preferences['rootFontSize'] == 8) return;
+        if (amount > 0 && $preferences['rootFontSize'] == 64) return;
+        preferences.update('rootFontSize', (fontSize: number) => fontSize + amount);
     }
     function toggleDragDrop(e: any) {
-        dragDropStatus.toggle();
+        preferences.toggle('dragDropMode');
     }
 
     function toggleReadOnly(e: any) {
-        readOnlyStatus.toggle();
+        preferences.toggle('readOnlyMode')
     }
 
-    onMount(() => changeZoom(0));
+    // set document font size once it is loaded
+    onMount(() => preferences.subscribe((prefs)=> {
+        if (document) document.documentElement.style.fontSize = prefs.rootFontSize + "px";
+    }));
 
     let magicWand = false;
     function toggleMagicWand(){
@@ -33,40 +36,67 @@
 </script>
 
 <div id="rail">
-    <span>Sort<br />.It</span>
+    <span>Boxlify</span>
     <div>
-        <button class="icon" on:click={() => changeZoom(-2)}>-</button>
-        <input type="text" value={zoom + "px"} readonly />
-        <button class="icon" on:click={() => changeZoom(2)}>+</button>
+        <span>Font Size</span>
+        <button class="icon-btn" on:click={() => changeZoom(-1)}>
+            <Svg icon="minus" width="1.2em" height="1.2em"  />
+        </button>
+        <button class="icon-btn" on:click={() => changeZoom(1)}>
+            <Svg icon="plus" width="1.2em" height="1.2em" />
+        </button>
+        <span>{$preferences['rootFontSize'] + "px"}</span>
     </div>
     <br />
     <div>
-        <button on:click={toggleDragDrop}
-            >{$dragDropStatus ? "Disable" : "Enable"}</button
+        <button class="btn drag-drop-button" on:click={toggleDragDrop} class:enabled={$preferences['dragDropMode']}
+            >DragDrop</button
         >
     </div>
     <div>
-        <button on:click={toggleMagicWand}>Wand</button>
+        <button class="btn" on:click={toggleMagicWand}>Wand</button>
     </div>
     <div>
-        <button class="btn read-only-button" on:click={toggleReadOnly} class:enabled={$readOnlyStatus}>ReadOnly</button>
+        <button class="btn read-only-button" on:click={toggleReadOnly} class:enabled={$preferences["readOnlyMode"]}>ReadOnly</button>
     </div>
 </div>
 
 <style>
-    div {
-        width: calc(48px * 2);
+    * {
+        font-size: 16px;
+    }
+    div#rail {
+        width: calc(48px * 1.5);
+        padding-block: 10px;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 10px;
     }
+    #rail > div {
+        padding: 2px;
+        background-color: rgba(var(--box-color-rgb), .3);
+        border-radius: 5px;
+    }
+    #rail > div > span:first-child {
+        background-color: rgba(var(--box-color-rgb), .3);
+        margin-bottom: 3px;
+        border-radius: 5px 5px 0 0;
+        margin-top: -2px;
+        margin-inline: -2px;
+        width: calc(100% + 4px);
+    }
 
     span {
         display: block;
+        font-size: 80%;
         text-align: center;
-        font-size: 60%;
-        color: white;
+        width: 100%;
+        padding: 3px 1px;
+        box-sizing: border-box;
+    }
+    .btn {
+        font-size: 80%;
     }
 
     input {
@@ -74,7 +104,9 @@
         width: 100%;
     }
 
-    .read-only-button.enabled {
-        background: red;
+    .drag-drop-button.enabled {
+        background-color: rgba(70,200,70,.6);
+    }.read-only-button.enabled {
+        background-color: rgba(200,70,70,.8);
     }
 </style>

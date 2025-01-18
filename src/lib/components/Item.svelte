@@ -5,6 +5,9 @@
     import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import Svg from "./SVG.svelte";
     import {dragHandle} from "svelte-dnd-action";
+    import {preferences} from "$lib/stores";
+    import { blur, slide } from "svelte/transition";
+    import {cubicIn, linear, sineIn} from "svelte/easing";
 
     export let item: Item;
     export let parent: [string, null | string];
@@ -23,16 +26,38 @@
     const updateSelf = (data: Item) => {
         queryClient.setQueryData([item.type, { id, parent: parent[1] }], data);
     };
-    const deleteAction = createMutation({
+
+    let deleteAction;
+    let updateAction;
+    let fakeMutation = createMutation({
+        mutationFn: ()=>console.log("Read-only mode prevented write.")
+    })
+
+
+    deleteAction = createMutation({
         mutationFn: parentDef.deleteFunc || (() => ({}) as Promise<any>),
 
         onSuccess: invalParent,
     });
-    const updateAction = createMutation({
+    updateAction = createMutation({
         mutationKey: [item.type, { id, parent: parent[1], type: "update" }],
         mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
         onSuccess: (data: Item) => updateSelf(data),
     });
+
+    let savedMutations: {[key: string]: any};
+    preferences.subscribe(({readOnlyMode})=>{
+        if(readOnlyMode){
+            savedMutations = {
+                updateAction: updateAction,
+                deleteAction: deleteAction
+            }
+            updateAction = fakeMutation;
+            deleteAction = fakeMutation;
+        } else if (savedMutations){
+            ({deleteAction, updateAction} = savedMutations);
+        }
+    })
 
     function deleteEvent() {
         if (!item.content.text)
@@ -64,6 +89,10 @@
         mounted = true;
     });
 
+    function deleteSelf(){
+        $deleteAction.mutate({ id: id, kind: def.kind });
+    }
+
     function enterPressed({
         key,
         shiftKey,
@@ -86,28 +115,38 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
     class="item"
-    class:fake={id == ""}
-    on:contextmenu|preventDefault={deleteEvent}
+    class:fake={id === ""}
     on:keydown={enterPressed}
     data-id={id}
 >
+    {#if def.editable !== false && $preferences['dragDropMode']}
+        <div class="drag-handle" use:dragHandle in:slide={{ duration: $preferences['doAnimations'] ? 100 : 0, axis: 'x', easing: linear }}
+             out:slide={{ duration: $preferences['doAnimations'] ? 100 : 0, axis: 'x', easing: linear }}>
+            <Svg icon="grip-vertical" />
+        </div>
+    {/if}
     <svelte:component
         this={def.component}
         content={item.content ?? {}}
         updater={saveContent}
-        fake={id == ""}
+        fake={id === ""}
     />
-    <div use:dragHandle >
-        <Svg icon="grip-vertical" />
+    {#if def.editable !== false }
+    <div class="delete">
+        <button class="icon-btn" on:click={deleteSelf}>
+        <Svg icon="ex" />
+        </button>
     </div>
+    {/if}
 </div>
 
 <style>
     .item {
         box-sizing: border-box;
         /* padding: 0px 3px; */
-        min-height: 25px;
+        /*min-height: 25px;*/
         min-width: 50px;
+        width: 20rem;
 
         border-radius: 3px;
 
@@ -116,6 +155,38 @@
 
         display: flex;
         align-items: center;
+    }
+    .drag-handle {
+        position: relative;
+        left: -4px;
+        width: 0.7rem;
+        opacity: 0;
+    }
+    .delete {
+        position: relative;
+        right: -3px;
+        opacity: 0;
+    }
+    .item:hover .drag-handle,
+    .drag-handle:has(button:focus) {
+        opacity: 1 !important;
+    }.item:hover .delete,
+         .delete:has(button:focus) {
+        opacity: 1 !important;
+    }
+    @media all and (hover: none) {
+        :global(textarea:focus ~ .drag-handle) {
+            opacity: 1 !important;
+        } :global(textarea:focus ~ .delete) {
+            opacity: 1 !important;
+        }
+    }
+    .delete button {
+        border-radius: 50%;
+        aspect-ratio: 1;
+        background: transparent;
+        padding: 0;
+
     }
     .fake {
         opacity: 0.5;

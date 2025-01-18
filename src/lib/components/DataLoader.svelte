@@ -27,11 +27,18 @@
         notifyOnChangeProps: ["data"],
         queryFn: async () => {
             if (id == "id:dnd-shadow-placeholder-0000") {
-                return {
+                return def.kind === 'box' ? {
                     order: { order: "default" },
                     holds: "core.item",
                     type: thing,
                     children: [],
+                } :
+                {
+                    "parent": "36c8e514-3330-4879-a3e8-8728cf2e4d0e",
+                    "content": {
+                        "text": "Fake item"
+                    },
+                    "type": "core.item"
                 };
             }
             let init: Box | Item;
@@ -86,19 +93,19 @@
 {#if $queryResult.isPending}
     <p>Loading {def.kind}...</p>
 {:else if $queryResult.isError}
-    {console.log($queryResult.error)}
+    {console.log($queryResult.error) || "Error printed in console"}
     <p style="color: red">dad{$queryResult.error}</p>
 {:else if $queryResult.data.copies}
     <svelte:self
-        parent={[thing, $queryResult.data.id]}
+            {parent}
         id={$queryResult.data.copies}
         {thing}
         ogData={$queryResult.data}
     />
-{:else if def.kind == "box"}
+{:else if def.kind === "box"}
     <BoxComponent
-        box={{ ...$queryResult.data, ...ogData }}
-        id={ogData ? ogData.id : id}
+        box={{ ...$queryResult.data, id, ...ogData }}
+        id={id}
         {parent}
     />
 {:else}

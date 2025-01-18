@@ -8,9 +8,11 @@
     import "/src/style.css";
     import DataLoader from "$lib/components/DataLoader.svelte";
     import SideBar from "$lib/components/SideBar.svelte";
+    import RightSideBar from "$lib/components/RightSideBar.svelte";
     import Error from "./+error.svelte";
     import SelectorTable from "$lib/components/SelectorTable.svelte";
     import { error } from "@sveltejs/kit";
+    import SelectorTree from "$lib/components/SelectorTree.svelte";
 
     const queryClient = new QueryClient({
         defaultOptions: {
@@ -66,7 +68,7 @@
 
 <!-- HTML head. -->
 <svelte:head>
-    <title>Svelte.it</title>
+    <title>Boxlify</title>
 </svelte:head>
 
 <SideBar />
@@ -81,7 +83,9 @@
         {/if}
     </QueryClientProvider>
 <!--    <SelectorTable titles={columns} {data} />-->
+    <SelectorTree/>
 </main>
+<!--<RightSideBar />-->
 
 <style>
     main {

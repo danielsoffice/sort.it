@@ -33,6 +33,7 @@
 		"axios": "^1.4.0",
 		"svelte-dnd-action": "^0.9.50",
 		"svelte-gestures": "^1.5.2",
+		"svelte-persisted-store": "^0.11.0",
 		"uuid": "^9.0.0"
 	}
 }

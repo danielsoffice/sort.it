@@ -2,7 +2,7 @@ import type { SvelteComponent } from "svelte"
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
-export type pluginInitFunc = (registerFunc: (name: string, thing: ThingDef) => void, registerOrder: (order: OrderDef) => void) => void
+export type pluginInitFunc = (registers: {registerType: (name: string, thing: ThingDef) => void, registerOrder: (order: OrderDef) => void}) => void
 
 export type Kind = "box" | "item";
 export type ViewOptionsDef = {
@@ -23,6 +23,7 @@ interface ThingDefGen {
     deleteFunc?: (vars: { id: string, kind: "box" | "item" }) => Promise<any>
     parentTypes?: string[]
     draggable?: boolean
+    editable?: boolean
 }
 interface BoxDefn {
     createFunc?: (vars: { parent: string, kind: "box" | "item", type: string, optionalData: { [key: string]: any } }) => Promise<any>
@@ -81,10 +82,12 @@ export type OrderDef = {
 })
 
 type Order = {
+    reversed: -1 | 1
+} & ({
     order: "default"
 } | {
     order: "checked"
 } | {
     order: "custom"
     custom: number[]
-} 
+})

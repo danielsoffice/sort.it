@@ -146,7 +146,7 @@ const orderByAlphabetical: OrderDef = {
     ,
 }
 
-export const init: pluginInitFunc = (registerType, registerOrder) => {
+export const init: pluginInitFunc = ({registerType, registerOrder}) => {
     registerType("box", box)
     registerType("item", item)
     registerType("richtext", richText)

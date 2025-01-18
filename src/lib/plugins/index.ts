@@ -36,7 +36,7 @@ export default class PluginManager {
                 this.PLUGINS = this.PLUGINS.filter(currPlugin => currPlugin != plugin)
                 continue;
             }
-            initFunc(registerType, registerOrder)
+            initFunc({registerType, registerOrder})
         }
         for (const item of this.boxClasses) {
             let thing = this.getDef(item) as BoxDef

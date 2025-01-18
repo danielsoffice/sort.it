@@ -1,5 +1,5 @@
 import TextBox from "$lib/components/Items/TextBox.svelte"
-import type { Box, BoxDef, ItemDef } from "$lib/types";
+import type {Box, BoxDef, ItemDef, pluginInitFunc} from "$lib/types";
 
 function getDates(id: string, type: "box" | "item"): any {
     const info = { type: "calendar.basic" }
@@ -13,21 +13,22 @@ function getDates(id: string, type: "box" | "item"): any {
     }
 }
 function getDateItems(id: string, type: "box" | "item"): any {
-
     return { type: "calendar.date", content: { text: id }, id: id }
 }
 
 const basic: BoxDef = {
     kind: "box",
     holds: ['calendar.date', 'calendar.basic'],
+    editable: false,
     sourceFunc: getDates,
 }
 const date: ItemDef = {
     kind: "item",
     sourceFunc: getDateItems,
+    editable: false,
     component: TextBox
 }
-export const init = (registerFunc: Function) => {
-    registerFunc("basic", basic)
-    registerFunc("date", date)
+export const init: pluginInitFunc = ({registerType}) => {
+    registerType("basic", basic)
+    registerType("date", date)
 }

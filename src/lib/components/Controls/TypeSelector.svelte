@@ -32,7 +32,7 @@
         flex: 10 10 100% !important;
     }
     select {
-        padding: 0px;
+        padding: 1px 0;
         border: none;
         font-size: inherit;
         color: inherit;
@@ -40,6 +40,8 @@
         text-align: center;
         background-color: var(--box-color);
         height: 100%;
+        border-radius: 5px;
+        color: var(--box-control-color);
     }
     option {
         margin: 0px;

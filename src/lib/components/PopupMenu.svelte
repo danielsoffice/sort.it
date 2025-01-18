@@ -2,8 +2,10 @@
     import { computePosition } from "@floating-ui/dom";
 
     export let buttonClasses = "icon-btn";
+    export let onClick = buttonClicked;
 
-    let menu: HTMLDivElement;
+    let primaryMenu: HTMLDivElement;
+    let secondaryMenu: HTMLDivElement;
 
     const shiftByOnePixel = {
         name: "shiftByOnePixel",
@@ -14,30 +16,55 @@
         },
     };
 
-    let menuOpen = false;
+    let primaryMenuOpen = false;
+    let secondaryMenuOpen = false;
 
     function buttonClicked(
         event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
     ) {
-        menuOpen = !menuOpen;
-        menu.style.display = menuOpen ? "block" : "none";
-        computePosition(event.currentTarget, menu, {
+        secondaryMenuOpen = false;
+        secondaryMenu.style.display = secondaryMenuOpen ? "block" : "none";
+        if(!$$slots['menu']) return
+        primaryMenuOpen = !primaryMenuOpen;
+        primaryMenu.style.display = primaryMenuOpen ? "block" : "none";
+        computePosition(event.currentTarget, primaryMenu, {
             placement: "bottom-end",
             middleware: [shiftByOnePixel],
         }).then(({ x, y }: { x: number; y: number }) => {
-            Object.assign(menu.style, {
+            Object.assign(primaryMenu.style, {
+                left: `${x}px`,
+                top: `${y}px`,
+            });
+        });
+    }
+
+    function buttonRightClicked(
+        event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
+    ) {
+        primaryMenuOpen = false;
+        primaryMenu.style.display = primaryMenuOpen ? "block" : "none";
+        if(!$$slots['secondary-menu']) return
+        secondaryMenuOpen = !secondaryMenuOpen;
+        secondaryMenu.style.display = secondaryMenuOpen ? "block" : "none";
+        computePosition(event.currentTarget, secondaryMenu, {
+            placement: "bottom-end",
+            middleware: [shiftByOnePixel],
+        }).then(({ x, y }: { x: number; y: number }) => {
+            Object.assign(secondaryMenu.style, {
                 left: `${x}px`,
                 top: `${y}px`,
             });
         });
     }
 </script>
-
-<button class={buttonClasses} on:click={buttonClicked}>
+<button class={buttonClasses} on:click={onClick} on:contextmenu|preventDefault={buttonRightClicked} >
     <slot name="button" />
 </button>
-<div class="popup-menu" bind:this={menu}>
+<div class="popup-menu" bind:this={primaryMenu}>
     <slot name="menu" />
+</div>
+<div class="popup-menu" bind:this={secondaryMenu}>
+    <slot name="secondary-menu" />
 </div>
 
 <style>

@@ -41,9 +41,9 @@
     input {
         /* display: none; */
         cursor: pointer;
-        width: 28px;
-        height: 28px;
-        margin: 0px;
+        width: 1.5rem;
+        height: 1.5rem;
+        margin: 0;
         margin-right: 5px;
         display: block;
         border-radius: 5px;

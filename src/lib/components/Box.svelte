@@ -1,22 +1,26 @@
 <script lang="ts">
-    import {dragDropStatus, readOnlyStatus} from "$lib/stores";
+    import {preferences} from "$lib/stores";
     import DataLoader from "./DataLoader.svelte";
-    import { createMutation, useQueryClient } from "@tanstack/svelte-query";
-    import { getContext, setContext } from "svelte";
-    import type { Box, BoxDef, Item, OrderDef, ThingDef } from "$lib/types";
+    import {createMutation, useIsMutating, useQueryClient} from "@tanstack/svelte-query";
+    import {getContext, setContext} from "svelte";
+    import type {Box, BoxDef, Item, OrderDef, ThingDef} from "$lib/types";
     import TypeSelector from "./Controls/TypeSelector.svelte";
     import Svg from "./SVG.svelte";
-    import {dndzone, dragHandleZone, SHADOW_ITEM_MARKER_PROPERTY_NAME} from "svelte-dnd-action";
-    import { errorDispatcher } from "$lib/utils";
+    import {type DndEvent, dragHandleZone, TRIGGERS} from "svelte-dnd-action";
+    import {errorDispatcher} from "$lib/utils";
     import TextBox from "./Items/TextBox.svelte";
+    import {flip} from "svelte/animate";
+    import {quintOut} from "svelte/easing";
+    import type PluginManager from "$lib/plugins";
+    import PopupMenu from "./PopupMenu.svelte";
+    import ConnectorLine from "$lib/components/ConnectorLine.svelte";
 
     export let id: string;
     export let parent: [string, null | string];
     export let box: Box;
 
-    let reverseOrder: 1 | -1 = 1;
     let children: { id: string }[] = [];
-    $: orderChildren(box.children, box.order, reverseOrder);
+    $: orderChildren(box.children, box.order);
 
     const manager = getContext("PluginManager") as PluginManager;
 
@@ -29,7 +33,6 @@
     function orderChildren(
         initChildren: string[],
         order: object,
-        reverse: 1 | -1,
     ) {
         let workingChildren = initChildren.map((id) => ({ id }));
 
@@ -111,7 +114,7 @@
                         orderDefinition.compareFunc(
                             child1.content,
                             child2.content,
-                        ) * reverse,
+                        ) * box.order.reversed,
                 );
 
                 // if (reverse) childrenWithContent.reverse();
@@ -129,18 +132,15 @@
                 children = workingChildren;
                 return;
             }
+        } else {
+            children = workingChildren;
         }
     }
 
+
+
     const queryClient = useQueryClient();
 
-    import { useIsMutating } from "@tanstack/svelte-query";
-    import { flip } from "svelte/animate";
-    import { quintOut } from "svelte/easing";
-    import { blur, fade } from "svelte/transition";
-    import type PluginManager from "$lib/plugins";
-    import PopupMenu from "./PopupMenu.svelte";
-    import PopupModal from "$lib/components/PopupModal.svelte";
     const isMutatingChildren = useIsMutating({
         mutationKey: [box.holds, { parent: id, type: "update" }],
     });
@@ -151,27 +151,12 @@
 
     let deleteAction;
     let updateAction;
+    let updateCloneAction;
     let createAction;
     let fakeMutation = createMutation({
         mutationFn: ()=>console.log("Read-only mode prevented write.")
     })
 
-    let savedMutations: {[key: string]: any};
-    readOnlyStatus.subscribe((status: boolean)=>{
-        if(status){
-            savedMutations = {
-                createAction: createAction,
-                updateAction: updateAction,
-                deleteAction: deleteAction
-            }
-            createAction = fakeMutation;
-            updateAction = fakeMutation;
-            deleteAction = fakeMutation;
-        } else if (savedMutations){
-            ({deleteAction, updateAction, createAction} = savedMutations);
-            console.log("Read mode disabled")
-        }
-    })
 
     $: holdsBoxes = (getContext("isBox") as Function)(box.holds);
 
@@ -180,12 +165,34 @@
             console.log("made it real!");
         });
 
+    function saveCustomOrder(newChildren?: { id: string }[]) {
+        let customOrder: number[];
+
+        let childrenList = (newChildren ?? children).map((child) => child.id);
+        
+        if (
+            box.order.order == "custom" && box.order.custom &&
+            box.order.custom.toString() == childrenList.toString()
+        ) return;
+
+        $updateAction.mutate({
+            id: id,
+            kind: "box",
+            data: {
+                order: {
+                    order: "custom",
+                    custom: customOrder,
+                },
+            },
+        });
+    }
+
     let self: HTMLDivElement;
 
     const invalSelf = () =>
         queryClient.invalidateQueries({ queryKey: [box.type, { id }] });
-    const updateSelf = (data: Box) => {
-        queryClient.setQueriesData({ queryKey: [box.type, { id }] }, data);
+    const updateSelf = (data: Box, boxId = id) => {
+        queryClient.setQueriesData({ queryKey: [box.type, {id: boxId}] }, data);
     };
     const invalParent = () =>
         queryClient.invalidateQueries({
@@ -203,6 +210,12 @@
         onSuccess: (data: Box) => updateSelf(data),
     });
 
+    updateCloneAction = createMutation({
+        mutationKey: [box.type, { id: box.id, parent: parent[1], type: "update" }],
+        mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
+        onSuccess: (data: Box) => updateSelf(data, box.id),
+    });
+
     createAction = createMutation({
         mutationKey: [box.type, { id, parent: parent[1], type: "create" }],
         mutationFn: def.createFunc || (() => ({}) as Promise<any>),
@@ -210,8 +223,26 @@
         onSuccess: invalSelf,
     });
 
+    let savedMutations: {[key: string]: any};
+    preferences.subscribe(({readOnlyMode})=>{
+        if(readOnlyMode){
+            savedMutations = {
+                createAction: createAction,
+                updateAction: updateAction,
+                updateCloneAction: updateCloneAction,
+                deleteAction: deleteAction
+            }
+            createAction = fakeMutation;
+            updateAction = fakeMutation;
+            updateCloneAction = fakeMutation;
+            deleteAction = fakeMutation;
+        } else if (savedMutations){
+            ({deleteAction, updateAction, updateCloneAction, createAction} = savedMutations);
+        }
+    })
+
     isMutatingChildren.subscribe((value) => {
-        if (value === 0) orderChildren(box.children, box.order, reverseOrder);
+        if (value === 0) orderChildren(box.children, box.order);
     });
 
     function addChildEvent(optionalData: { [key: string]: any } = {}) {
@@ -241,38 +272,10 @@
     }
 
     function deleteEvent() {
-        if (!box.children.length || box.type != "core.box")
-            $deleteAction.mutate({
-                id: id,
-                kind: "box",
-            });
-    }
-    function saveCustomOrder(newChildren?: { id: string }[]) {
-        let customOrder: number[];
-        if (newChildren != undefined) {
-            customOrder = newChildren.map((child) =>
-                box.children.indexOf(child.id),
-            );
-            if (
-                box.order.order == "custom" &&
-                box.order.custom.toString() == customOrder.toString()
-            )
-                return;
-        } else {
-            customOrder = children.map((child) =>
-                box.children.indexOf(child.id),
-            );
-        }
-
-        $updateAction.mutate({
-            id: id,
+        if (box.children.length && box.type == "core.box" && !box.copies && !confirm("Are you sure you want to delete this box?")) return
+        $deleteAction.mutate({
+            id: box.id,
             kind: "box",
-            data: {
-                order: {
-                    order: "custom",
-                    custom: customOrder,
-                },
-            },
         });
     }
 
@@ -293,24 +296,47 @@
     }
 
     // console.log(saveResize)
+    const changeParent = createMutation({
+        // mutationKey: [box.holds, { id: itemId, parent: id }],
+        mutationFn: getDef(box.holds).mutateFunc || (() => ({}) as Promise<any>),
+        onSuccess: (_data: Box) => invalSelf()
+    });
+
 
     function handleDndConsider(e: CustomEvent<DndEvent<any>>) {
-        // children = e.detail.items
-        console.log(e.detail.items);
-        // children = e.detail.items;
+        children = e.detail.items
     }
     function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
-        // children = e.detail.items
-        // saveCustomOrder(e.detail.items);
-        console.log(children)
+        children = e.detail.items
 
+        if(e.detail.info.trigger === TRIGGERS.DROPPED_INTO_ANOTHER) invalSelf()
+        if(e.detail.info.trigger === TRIGGERS.DROPPED_INTO_ZONE){
+            const itemId = e.detail.info.id;
+            const itemParent  = (queryClient.getQueryData([box.holds, { id: itemId, parent: id }])).parent;
+            if(id === itemParent){
+                saveCustomOrder(children);
+            } else {
+                if($preferences['readOnlyMode']) return
+
+                $changeParent.mutate({
+                    id: itemId,
+                    kind: "item",
+                    data: { parent: id },
+                }, {
+                    onSuccess() {
+                        queryClient.invalidateQueries({ queryKey: [box.type, { id: itemParent }] })
+                    },
+                },)
+            }
+
+        }
     }
 
     setContext("createFunction", addChildEvent);
 
     function updateOrder(name: string) {
-        $updateAction.mutate({
-            id: id,
+        $updateCloneAction.mutate({
+            id:  box.id,
             kind: "box",
             data: {
                 order: {
@@ -321,43 +347,91 @@
         });
     }
 
-    const enableAnimations = true;
+    function updateOrderReversed(reversed: -1 | 1) {
+        $updateCloneAction.mutate({
+            id:  box.id,
+            kind: "box",
+            data: {
+                order: {
+                    ...box.order,
+                    reversed
+                },
+            },
+        });
+    }
+
+    function copyEvent(optionalData: { [key: string]: any } = {}) {
+        let data: any;
+        let extraData = {...optionalData, copies: id}
+        $createAction.mutate(
+            {
+                parent: parent[1],
+                type: 'core.box',
+                kind: 'box',
+                optionalData: extraData,
+            },
+            {
+                onSuccess(datas, variables, context) {
+                    data = structuredClone(datas);
+                    invalParent()
+                },
+            },
+        );
+        return data;
+    }
 
     let controlBarVisible = true;
-</script>
 
+    let showCopiesOrigin = false;
+
+    function customFade(params){
+        console.log(params)
+    }
+</script>
+{#if showCopiesOrigin}
+    <ConnectorLine element1={self} element2={document.querySelector(`[data-id='${id}']`)} />
+{/if}
 <div
-    id={id.toString()}
+    {id}
     class="box"
     bind:this={self}
     style={"opacity:" + (false ? 0.5 : 1).toString()}
-    data-id={id}
+    data-id={box.id}
 >
     <div class="control-bar">
         {#if controlBarVisible}
             {#if def.createFunc}
                 <div>
-                    <button
-                        class="icon-btn"
-                        on:click={addChildEvent}
-                        on:keypress={addChildEvent}><Svg icon="plus" /></button
-                    >
+<!--                    <button-->
+<!--                        class="icon-btn"-->
+<!--                        on:click={addChildEvent}-->
+<!--                        on:keypress={addChildEvent}>-->
+<!--                        <Svg icon="plus" /></button-->
+<!--                    >-->
+                    <PopupMenu onClick={addChildEvent}>
+                        <svelte:fragment slot="button">
+                            <Svg icon="plus" />
+                        </svelte:fragment>
+                        <svelte:fragment slot="secondary-menu">
+                            <div class="dropdown">
+                                <button class="btn">Add from file</button>
+                            </div>
+                        </svelte:fragment>
+                    </PopupMenu>
                 </div>
             {/if}
-            {#if parentDef.deleteFunc && parent[1] !== null && false}
+            {#if parentDef.deleteFunc && parent[1] !== null}
                 <div>
                     <button
                         class="icon-btn"
                         on:click={deleteEvent}
                         on:keypress={deleteEvent}
-                        ><Svg
-                            icon="ex"
-                            width=".95rem"
-                            height=".95rem"
-                        /></button
+                        ><Svg icon="ex"/>
+                    </button
                     >
                 </div>
             {/if}
+            <div>
             {#if box.holds_type === "item"}
                 <PopupMenu>
                     <svelte:fragment slot="button">
@@ -368,10 +442,10 @@
                             <button
                                 class="icon-btn"
                                 on:click={() => {
-                                    reverseOrder *= -1;
+                                    updateOrderReversed(box.order.reversed === 1 ? -1 : 1);
                                 }}
                             >
-                                {#if reverseOrder === 1}
+                                {#if box.order.reversed === 1}
                                     <Svg icon="order-ascending" />
                                 {:else}
                                     <Svg icon="order-descending" />
@@ -386,20 +460,57 @@
                             />
                         </div>
                     </svelte:fragment>
+                    <svelte:fragment slot="secondary-menu">
+                        <div>hey</div>
+                    </svelte:fragment>
                 </PopupMenu>
             {/if}
+            </div>
+            {#if parent[1] && parentDef.createFunc && !box.copies}
+            <div>
+                <button
+                        class="icon-btn"
+                        on:click={copyEvent}
+                        on:keypress={copyEvent}
+                ><Svg icon="copy"/>
+                </button
+                >
+            </div>{:else if box.copies }
+                <div>
+                    <button
+                            class="icon-btn hoverable"
+                            on:mouseenter={()=>showCopiesOrigin=true}
+                            on:mouseleave={()=>showCopiesOrigin=false}
+                    ><Svg icon="copy"/>
+                    </button
+                    >
+                </div>
+            {/if}
+            {#if parent[1] === null}
+                <div>
+                    <button
+                            title="Reload all boxes and items"
+                            class="icon-btn"
+                            on:click={()=>{queryClient.invalidateQueries()}}
+                    ><Svg icon="refresh"/>
+                    </button
+                    >
+                </div>
+            {/if}
         {:else}
-            <h4 contenteditable={true}>{box.title}</h4>
+            <h3>{box.title}</h3>
         {/if}
         <div>
             <button
                 class=" icon-btn"
                 on:click={() => (controlBarVisible = !controlBarVisible)}
+                on:contextmenu={()=>console.log(box)}
             >
                 <Svg icon="options" />
             </button>
         </div>
     </div>
+    
     <div>
         <TextBox
             content={{ text: box.title ?? "" }}
@@ -408,26 +519,25 @@
         />
     </div>
     <div
+        id={id+"-children"}
         class="children"
         class:holdsItems={!holdsBoxes}
-        use:dndzone={{
+        use:dragHandleZone={{
             items: children,
             type: box.copies ? id : box.holds,
-            dragDisabled: holdsBoxes || !$dragDropStatus,
-            dropFromOthersDisabled: box.copies,
+            dragDisabled: holdsBoxes || !$preferences['dragDropMode'],
+            // dropFromOthersDisabled: true || box.copies,
         }}
         on:consider={handleDndConsider}
         on:finalize={handleDndFinalize}
     >
         {#each children as child (child.id)}
             <div
-                    data-is-dnd-shadow-item-hint={child[SHADOW_ITEM_MARKER_PROPERTY_NAME]}
+
                 animate:flip={{
-                    duration: enableAnimations ? 250 : 0,
+                    duration: $preferences['doAnimations'] ? 250 : 0,
                     easing: quintOut,
                 }}
-                in:fade={{ duration: enableAnimations ? 400 : 0 }}
-                out:blur={{ duration: enableAnimations ? 400 : 0 }}
             >
                 <DataLoader
                     parent={[box.type, id]}
@@ -444,16 +554,8 @@
                 initVal={box.holds}
                 {changeTypeEvent}
             />
-            <!-- {:else}
-            <div style={"flex: 10 10 100% !important;"}>{box.holds}</div> -->
         </div>
     {/if}
-    <!-- {#if !holdsBoxes}
-            <Item
-                item={{ id: "", parent: id, type: box.holds }}
-                parent={[box.type, id]}
-            />
-        {/if} -->
 </div>
 
 <style>
@@ -475,6 +577,10 @@
         display: flex;
         flex-direction: column;
         flex-wrap: nowrap;
+    }
+    h3 {
+        color: var(--item-text-color);
+        font-weight: 600;
     }
     .children {
         overflow: auto;
@@ -508,6 +614,7 @@
         background: var(--box-color);
         overflow: hidden;
         color: white;
+        flex: 0 0 auto;
     }
 
     #order-dropdown {
@@ -519,7 +626,7 @@
         text-align: center;
     }
 
-    .control-bar button:hover {
+    :global(.control-bar button:hover) {
         background: #0001;
     }
 
