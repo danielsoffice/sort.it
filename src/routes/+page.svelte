@@ -83,7 +83,7 @@
         {/if}
     </QueryClientProvider>
 <!--    <SelectorTable titles={columns} {data} />-->
-    <SelectorTree/>
+    <!-- <SelectorTree/> -->
 </main>
 <!--<RightSideBar />-->
 

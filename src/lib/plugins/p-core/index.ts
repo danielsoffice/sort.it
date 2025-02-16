@@ -14,7 +14,8 @@ const config = {
     // }
 }
 // const server = "https://sortit.danielsoffice.us/api/"
-const server = "http://localhost:8000/api/"
+// const server = "http://localhost:8000/api/"
+const server = "https://boxlify.app/api/"
 
 async function fetchThing(id: string, type: "box" | "item") {
     let responseGet = await fetch(`${server + type}/${id}/ `)
@@ -37,7 +38,11 @@ async function addChild(vars: { parent: string, kind: "box" | "item", type: stri
 
     return response.data
 }
-async function updateThing(vars: { id: string, kind: "box" | "item", data: {} }) {
+async function updateThing(vars: { id: string, kind: "box" | "item", data: { [key: string]: any } }) {
+    const stuff = vars.data
+    console.log(vars)
+    console.log(vars.data)
+    console.log(vars.data.data)
     const response = await axios.patch(server + vars.kind + "/" + vars.id + "/", vars.data, config).catch(() => { throw new Error("Failed to perform Update") })
     return response.data
 }
@@ -146,7 +151,7 @@ const orderByAlphabetical: OrderDef = {
     ,
 }
 
-export const init: pluginInitFunc = ({registerType, registerOrder}) => {
+export const init: pluginInitFunc = ({ registerType, registerOrder }) => {
     registerType("box", box)
     registerType("item", item)
     registerType("richtext", richText)

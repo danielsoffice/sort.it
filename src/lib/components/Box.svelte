@@ -3,7 +3,7 @@
     import DataLoader from "./DataLoader.svelte";
     import {createMutation, useIsMutating, useQueryClient} from "@tanstack/svelte-query";
     import {getContext, setContext} from "svelte";
-    import type {Box, BoxDef, Item, OrderDef, ThingDef} from "$lib/types";
+    import type {Box, BoxDef, Item, OrderDef, storeChildUpdateFunction, ThingDef} from "$lib/types";
     import TypeSelector from "./Controls/TypeSelector.svelte";
     import Svg from "./SVG.svelte";
     import {type DndEvent, dragHandleZone, TRIGGERS} from "svelte-dnd-action";
@@ -24,6 +24,11 @@
 
     const manager = getContext("PluginManager") as PluginManager;
 
+    let childUpdateFunctions: {[id: string]: Function} = {};
+    setContext("storeChildUpdateFunction", (id: Parameters<storeChildUpdateFunction>[0], updateFunc: Parameters<storeChildUpdateFunction>[1]) =>{
+       childUpdateFunctions[id] = updateFunc;
+    });
+
     /**
      * Responsible for initial order as well as re-ordering if list of children or order changes.
      * The box component re-renders when children is assigned, so it is assigned once before completion.
@@ -39,6 +44,12 @@
         // TODO: allow box ordering
         if (box.holds_type == "box") {
             return (children = workingChildren);
+        }
+
+        if(box.children[0]){
+            if(!queryClient.getQueryData([box.holds, { id: box.children[0], parent: id }])){
+                console.log([box.holds, { id: box.children[0], parent: id }])
+            }
         }
 
         if (box.order) {
@@ -149,12 +160,12 @@
     const parentDef: BoxDef = getDef(parent[0]) as BoxDef;
     let def: BoxDef = getDef(box.type) as BoxDef;
 
-    let deleteAction;
-    let updateAction;
-    let updateCloneAction;
-    let createAction;
+    let deleteAction: any;
+    let updateAction: any;
+    let updateCloneAction: any;
+    let createAction: any;
     let fakeMutation = createMutation({
-        mutationFn: ()=>console.log("Read-only mode prevented write.")
+        mutationFn: ()=>new Promise(()=>console.log("Read-only mode prevented write."))
     })
 
 
@@ -181,7 +192,7 @@
             data: {
                 order: {
                     order: "custom",
-                    custom: customOrder,
+                    custom: childrenList,
                 },
             },
         });

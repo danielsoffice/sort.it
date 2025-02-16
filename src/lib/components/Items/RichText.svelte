@@ -2,8 +2,8 @@
     import type { Item } from "$lib/types";
     import { getContext, onMount, onDestroy } from "svelte";
     import { Editor } from "@tiptap/core";
-    import { Color } from '@tiptap/extension-color'
-    import TextStyle from '@tiptap/extension-text-style'
+    import { Color } from "@tiptap/extension-color";
+    import TextStyle from "@tiptap/extension-text-style";
     import StarterKit from "@tiptap/starter-kit";
     import Svg from "$lib/components/SVG.svelte";
     import PopupModal from "$lib/components/PopupModal.svelte";
@@ -77,9 +77,11 @@
         mounted = true;
         editor = new Editor({
             element: element,
-            extensions: [Color.configure({ types: [TextStyle.name] }),
+            extensions: [
+                Color.configure({ types: [TextStyle.name] }),
                 TextStyle,
-                StarterKit],
+                StarterKit,
+            ],
             content: text,
             onTransaction: () => {
                 // force re-render so `editor.isActive` works as expected
@@ -98,7 +100,6 @@
     });
 </script>
 
-
 <PopupModal title="Edit Rich Text Item">
     <svelte:fragment slot="button">
         <Svg icon="edit" />
@@ -108,130 +109,236 @@
             <div class="control-group">
                 <div class="button-group">
                     <button
-                            on:click={() => console.log && editor.chain().focus().toggleBold().run()}
-                            disabled={!editor.can().chain().focus().toggleBold().run()}
-                            class={(editor.isActive("bold") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            console.log &&
+                            editor.chain().focus().toggleBold().run()}
+                        disabled={!editor
+                            .can()
+                            .chain()
+                            .focus()
+                            .toggleBold()
+                            .run()}
+                        class={(editor.isActive("bold") ? "is-active" : "") +
+                            " btn"}
                     >
                         Bold
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleItalic().run()}
-                            disabled={!editor.can().chain().focus().toggleItalic().run()}
-                            class={(editor.isActive("italic") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleItalic().run()}
+                        disabled={!editor
+                            .can()
+                            .chain()
+                            .focus()
+                            .toggleItalic()
+                            .run()}
+                        class={(editor.isActive("italic") ? "is-active" : "") +
+                            " btn"}
                     >
                         Italic
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleStrike().run()}
-                            disabled={!editor.can().chain().focus().toggleStrike().run()}
-                            class={(editor.isActive("strike") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleStrike().run()}
+                        disabled={!editor
+                            .can()
+                            .chain()
+                            .focus()
+                            .toggleStrike()
+                            .run()}
+                        class={(editor.isActive("strike") ? "is-active" : "") +
+                            " btn"}
                     >
                         Strike
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleCode().run()}
-                            disabled={!editor.can().chain().focus().toggleCode().run()}
-                            class={(editor.isActive("code") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleCode().run()}
+                        disabled={!editor
+                            .can()
+                            .chain()
+                            .focus()
+                            .toggleCode()
+                            .run()}
+                        class={(editor.isActive("code") ? "is-active" : "") +
+                            " btn"}
                     >
                         Code
                     </button>
-                    <button on:click={() => editor.chain().focus().unsetAllMarks().run()}
-                    class="btn">Clear marks</button>
-                    <button on:click={() => editor.chain().focus().clearNodes().run()} class="btn">Clear nodes</button>
                     <button
-                            on:click={() => editor.chain().focus().setParagraph().run()}
-                            class={(editor.isActive("paragraph") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().unsetAllMarks().run()}
+                        class="btn">Clear marks</button
+                    >
+                    <button
+                        on:click={() =>
+                            editor.chain().focus().clearNodes().run()}
+                        class="btn">Clear nodes</button
+                    >
+                    <button
+                        on:click={() =>
+                            editor.chain().focus().setParagraph().run()}
+                        class={(editor.isActive("paragraph")
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Paragraph
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                            class={(editor.isActive("heading", { level: 1 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 1 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 1 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H1
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                            class={(editor.isActive("heading", { level: 2 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 2 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 2 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H2
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                            class={(editor.isActive("heading", { level: 3 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 3 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 3 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H3
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-                            class={(editor.isActive("heading", { level: 4 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 4 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 4 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H4
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
-                            class={(editor.isActive("heading", { level: 5 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 5 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 5 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H5
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}
-                            class={(editor.isActive("heading", { level: 6 }) ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor
+                                .chain()
+                                .focus()
+                                .toggleHeading({ level: 6 })
+                                .run()}
+                        class={(editor.isActive("heading", { level: 6 })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         H6
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleBulletList().run()}
-                            class={(editor.isActive("bulletList") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleBulletList().run()}
+                        class={(editor.isActive("bulletList")
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Bullet list
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleOrderedList().run()}
-                            class={(editor.isActive("orderedList") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleOrderedList().run()}
+                        class={(editor.isActive("orderedList")
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Ordered list
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleCodeBlock().run()}
-                            class={(editor.isActive("codeBlock") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleCodeBlock().run()}
+                        class={(editor.isActive("codeBlock")
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Code block
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().toggleBlockquote().run()}
-                            class={(editor.isActive("blockquote") ? "is-active" : "") + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().toggleBlockquote().run()}
+                        class={(editor.isActive("blockquote")
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Blockquote
                     </button>
-                    <button on:click={() => editor.chain().focus().setHorizontalRule().run()} class="btn">
+                    <button
+                        on:click={() =>
+                            editor.chain().focus().setHorizontalRule().run()}
+                        class="btn"
+                    >
                         Horizontal rule
                     </button>
-                    <button on:click={() => editor.chain().focus().setHardBreak().run()} class="btn">Hard break</button>
                     <button
-                            on:click={() => editor.chain().focus().undo().run()}
-                            disabled={!editor.can().chain().focus().undo().run()}
-                            class="btn"
+                        on:click={() =>
+                            editor.chain().focus().setHardBreak().run()}
+                        class="btn">Hard break</button
+                    >
+                    <button
+                        on:click={() => editor.chain().focus().undo().run()}
+                        disabled={!editor.can().chain().focus().undo().run()}
+                        class="btn"
                     >
                         Undo
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().redo().run()}
-                            disabled={!editor.can().chain().focus().redo().run()}
-                            class="btn"
+                        on:click={() => editor.chain().focus().redo().run()}
+                        disabled={!editor.can().chain().focus().redo().run()}
+                        class="btn"
                     >
                         Redo
                     </button>
                     <button
-                            on:click={() => editor.chain().focus().setColor('#958DF1').run()}
-                            class={(editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : '') + " btn"}
+                        on:click={() =>
+                            editor.chain().focus().setColor("#958DF1").run()}
+                        class={(editor.isActive("textStyle", {
+                            color: "#958DF1",
+                        })
+                            ? "is-active"
+                            : "") + " btn"}
                     >
                         Purple
                     </button>
                 </div>
             </div>
         {/if}
-        <br/>
+        <br />
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div id="editor" bind:this={element} />
     </svelte:fragment>
@@ -241,7 +348,6 @@
 <div id="editor-preview">
     {@html text}
 </div>
-
 
 <!-- <textarea
     value={text}
@@ -269,19 +375,17 @@
     .control-group {
         border-radius: 5px;
         padding: 8px;
-        background-color: rgba(var(--detail-contrast), .05);
+        background-color: rgba(var(--detail-contrast), 0.05);
     }
     .control-group > .button-group {
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
         align-items: baseline;
-
     }
     .control-group button {
         font-size: 80%;
         margin: 4px;
-
     }
     button.active {
         background: black;

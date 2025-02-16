@@ -1,13 +1,13 @@
 <script lang="ts">
-    import type { Item } from "$lib/types";
+    import type { Item, storeChildUpdateFunction } from "$lib/types";
     import { getContext, onMount, setContext } from "svelte";
     import type { BoxDef, ItemDef } from "$lib/types";
     import { createMutation, useQueryClient } from "@tanstack/svelte-query";
     import Svg from "./SVG.svelte";
-    import {dragHandle} from "svelte-dnd-action";
-    import {preferences} from "$lib/stores";
+    import { dragHandle } from "svelte-dnd-action";
+    import { preferences } from "$lib/stores";
     import { blur, slide } from "svelte/transition";
-    import {cubicIn, linear, sineIn} from "svelte/easing";
+    import { cubicIn, linear, sineIn } from "svelte/easing";
 
     export let item: Item;
     export let parent: [string, null | string];
@@ -30,9 +30,8 @@
     let deleteAction;
     let updateAction;
     let fakeMutation = createMutation({
-        mutationFn: ()=>console.log("Read-only mode prevented write.")
-    })
-
+        mutationFn: () => console.log("Read-only mode prevented write."),
+    });
 
     deleteAction = createMutation({
         mutationFn: parentDef.deleteFunc || (() => ({}) as Promise<any>),
@@ -41,23 +40,25 @@
     });
     updateAction = createMutation({
         mutationKey: [item.type, { id, parent: parent[1], type: "update" }],
-        mutationFn: def.mutateFunc || (() => ({}) as Promise<any>),
+        mutationFn: def.mutateFunc
+            ? (data: any) => def.mutateFunc({ id, kind: "item", data: data })
+            : () => ({}) as Promise<any>,
         onSuccess: (data: Item) => updateSelf(data),
     });
 
-    let savedMutations: {[key: string]: any};
-    preferences.subscribe(({readOnlyMode})=>{
-        if(readOnlyMode){
+    let savedMutations: { [key: string]: any };
+    preferences.subscribe(({ readOnlyMode }) => {
+        if (readOnlyMode) {
             savedMutations = {
                 updateAction: updateAction,
-                deleteAction: deleteAction
-            }
+                deleteAction: deleteAction,
+            };
             updateAction = fakeMutation;
             deleteAction = fakeMutation;
-        } else if (savedMutations){
-            ({deleteAction, updateAction} = savedMutations);
+        } else if (savedMutations) {
+            ({ deleteAction, updateAction } = savedMutations);
         }
-    })
+    });
 
     function deleteEvent() {
         if (!item.content.text)
@@ -65,14 +66,14 @@
     }
 
     function saveContent(content: object) {
-        $updateAction.mutate({
-            id: id,
-            kind: "item",
-            data: { content: content },
-        });
+        $updateAction.mutate({ content });
     }
 
     setContext("deleteFunction", deleteEvent);
+    const storeChildUpdateFunction: storeChildUpdateFunction = getContext(
+        "storeChildUpdateFunction",
+    );
+    storeChildUpdateFunction(id);
 
     // function onVisibilityChange(event: any) {
     //     if (saveTimeout >= 1 && document.visibilityState === "hidden")
@@ -89,7 +90,7 @@
         mounted = true;
     });
 
-    function deleteSelf(){
+    function deleteSelf() {
         $deleteAction.mutate({ id: id, kind: def.kind });
     }
 
@@ -113,15 +114,22 @@
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-    class="item"
-    class:fake={id === ""}
-    on:keydown={enterPressed}
-    data-id={id}
->
-    {#if def.editable !== false && $preferences['dragDropMode']}
-        <div class="drag-handle" use:dragHandle in:slide={{ duration: $preferences['doAnimations'] ? 100 : 0, axis: 'x', easing: linear }}
-             out:slide={{ duration: $preferences['doAnimations'] ? 100 : 0, axis: 'x', easing: linear }}>
+<div class="item" class:fake={id === ""} on:keydown={enterPressed} data-id={id}>
+    {#if def.editable !== false && $preferences["dragDropMode"]}
+        <div
+            class="drag-handle"
+            use:dragHandle
+            in:slide={{
+                duration: $preferences["doAnimations"] ? 100 : 0,
+                axis: "x",
+                easing: linear,
+            }}
+            out:slide={{
+                duration: $preferences["doAnimations"] ? 100 : 0,
+                axis: "x",
+                easing: linear,
+            }}
+        >
             <Svg icon="grip-vertical" />
         </div>
     {/if}
@@ -131,12 +139,12 @@
         updater={saveContent}
         fake={id === ""}
     />
-    {#if def.editable !== false }
-    <div class="delete">
-        <button class="icon-btn" on:click={deleteSelf}>
-        <Svg icon="ex" />
-        </button>
-    </div>
+    {#if def.editable !== false}
+        <div class="delete">
+            <button class="icon-btn" on:click={deleteSelf}>
+                <Svg icon="ex" />
+            </button>
+        </div>
     {/if}
 </div>
 
@@ -164,20 +172,22 @@
     }
     .delete {
         position: relative;
-        right: -3px;
+        right: 1px;
         opacity: 0;
     }
     .item:hover .drag-handle,
     .drag-handle:has(button:focus) {
         opacity: 1 !important;
-    }.item:hover .delete,
-         .delete:has(button:focus) {
+    }
+    .item:hover .delete,
+    .delete:has(button:focus) {
         opacity: 1 !important;
     }
     @media all and (hover: none) {
         :global(textarea:focus ~ .drag-handle) {
             opacity: 1 !important;
-        } :global(textarea:focus ~ .delete) {
+        }
+        :global(textarea:focus ~ .delete) {
             opacity: 1 !important;
         }
     }
@@ -185,8 +195,11 @@
         border-radius: 50%;
         aspect-ratio: 1;
         background: transparent;
-        padding: 0;
-
+        padding: 1px;
+    }
+    :global(.delete button *) {
+        position: relative;
+        top: -1px;
     }
     .fake {
         opacity: 0.5;
