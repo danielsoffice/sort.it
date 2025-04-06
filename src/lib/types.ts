@@ -50,12 +50,13 @@ export interface Thing {
     id: string
     parent: string | null
     type: string
+    position: number
     [key: string]: any
 }
 export type Box = ({
     holds: string
     holds_type: "box" | "item"
-    children: string[] | object[]
+    children: string[]
     order: Order
     kind: "box",
     title: string,
@@ -93,3 +94,11 @@ type Order = {
 })
 
 export type storeChildUpdateFunction = (id: string, updateFunc: Function) => void
+
+export type addChildAction = (
+    optionalData?: { [key: string]: any },
+    baseThing?: {
+        id: string;
+        placement: -1 | 1;
+    }
+) => Promise<Box | Item>;

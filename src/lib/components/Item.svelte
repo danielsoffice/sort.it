@@ -70,10 +70,13 @@
     }
 
     setContext("deleteFunction", deleteEvent);
+
     const storeChildUpdateFunction: storeChildUpdateFunction = getContext(
         "storeChildUpdateFunction",
     );
-    storeChildUpdateFunction(id);
+    storeChildUpdateFunction(id, $updateAction.mutate);
+
+    const storeFocusableElement: Function = getContext("storeFocusableElement");
 
     // function onVisibilityChange(event: any) {
     //     if (saveTimeout >= 1 && document.visibilityState === "hidden")
@@ -84,10 +87,16 @@
     //         });
     // }
 
+    let focusableElement: HTMLElement;
+
     let mounted = false;
     onMount(() => {
         // window.addEventListener("visibilitychange", onVisibilityChange);
         mounted = true;
+        // console.log(id);
+        if (focusableElement) {
+            storeFocusableElement(id, focusableElement);
+        }
     });
 
     function deleteSelf() {
@@ -137,6 +146,8 @@
         this={def.component}
         content={item.content ?? {}}
         updater={saveContent}
+        bind:focusableElement
+        {id}
         fake={id === ""}
     />
     {#if def.editable !== false}

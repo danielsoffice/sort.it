@@ -1,4 +1,6 @@
 import { persisted } from 'svelte-persisted-store'
+import { writable } from 'svelte/store';
+
 
 const defaultPreferences = {
     readOnlyMode: false,
@@ -16,13 +18,13 @@ function createPreferences() {
     const { subscribe, update } = persisted('preferences', defaultPreferences)
 
     // TODO: Remove in production
-    update((prefs)=> ({...defaultPreferences, ...prefs}));
+    update((prefs) => ({ ...defaultPreferences, ...prefs }));
 
     return {
         subscribe,
-        set: <K extends keyof Prefs>(name: K, value: Prefs[K]) => update((prefs: Prefs) => { prefs[name] = value; return prefs}),
+        set: <K extends keyof Prefs>(name: K, value: Prefs[K]) => update((prefs: Prefs) => { prefs[name] = value; return prefs }),
         update: <K extends keyof Prefs>(name: K, updateFunc: (value: Prefs[K]) => Prefs[K]) => {
-            update((prefs: Prefs) => { prefs[name] = updateFunc(prefs[name]); return prefs})
+            update((prefs: Prefs) => { prefs[name] = updateFunc(prefs[name]); return prefs })
         },
         toggle: <K extends BooleanPrefKeys>(name: K) => update((prefs: Prefs) => {
             prefs[name] = !prefs[name];

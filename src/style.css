@@ -78,6 +78,7 @@ button.btn {
     padding: 3px 5px;
     border-width: 1px;
     background-color: var(--button-bg);
+    min-width: 20px;
 }
 
 button.icon-btn {
@@ -197,4 +198,31 @@ main {
     .box {}
 
 
+}
+
+.button-grouping {
+    display: inline-block;
+
+    &:empty {
+			display: none;
+		}
+}
+
+.button-grouping > button.btn:first-child {
+    border-right-width: 0;
+    border-top-right-radius: 0;
+    border-end-end-radius: 0;
+    margin-right: 0;
+}
+.button-grouping > button.btn:not(:first-child):not(:last-child) {
+    border-left-width: 1;
+    border-right-width: 1;
+    border-radius: 0;
+    margin-inline: 0;
+}
+.button-grouping > button.btn:last-child {
+    border-left-width: 0;
+    border-top-left-radius: 0;
+    border-end-start-radius: 0;
+    margin-left: 0;
 }

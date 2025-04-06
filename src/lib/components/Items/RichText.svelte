@@ -108,49 +108,54 @@
         {#if editor}
             <div class="control-group">
                 <div class="button-group">
-                    <button
-                        on:click={() =>
-                            console.log &&
-                            editor.chain().focus().toggleBold().run()}
-                        disabled={!editor
-                            .can()
-                            .chain()
-                            .focus()
-                            .toggleBold()
-                            .run()}
-                        class={(editor.isActive("bold") ? "is-active" : "") +
-                            " btn"}
-                    >
-                        Bold
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().toggleItalic().run()}
-                        disabled={!editor
-                            .can()
-                            .chain()
-                            .focus()
-                            .toggleItalic()
-                            .run()}
-                        class={(editor.isActive("italic") ? "is-active" : "") +
-                            " btn"}
-                    >
-                        Italic
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor.chain().focus().toggleStrike().run()}
-                        disabled={!editor
-                            .can()
-                            .chain()
-                            .focus()
-                            .toggleStrike()
-                            .run()}
-                        class={(editor.isActive("strike") ? "is-active" : "") +
-                            " btn"}
-                    >
-                        Strike
-                    </button>
+                    <div class="button-grouping">
+                        <button
+                            on:click={() =>
+                                console.log &&
+                                editor.chain().focus().toggleBold().run()}
+                            disabled={!editor
+                                .can()
+                                .chain()
+                                .focus()
+                                .toggleBold()
+                                .run()}
+                            class={(editor.isActive("bold")
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            <strong>B</strong>
+                        </button><!--
+                        --><button
+                            on:click={() =>
+                                editor.chain().focus().toggleItalic().run()}
+                            disabled={!editor
+                                .can()
+                                .chain()
+                                .focus()
+                                .toggleItalic()
+                                .run()}
+                            class={(editor.isActive("italic")
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            <em>I</em>
+                        </button><!--
+                        --><button
+                            on:click={() =>
+                                editor.chain().focus().toggleStrike().run()}
+                            disabled={!editor
+                                .can()
+                                .chain()
+                                .focus()
+                                .toggleStrike()
+                                .run()}
+                            class={(editor.isActive("strike")
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            <s>S</s>
+                        </button>
+                    </div>
                     <button
                         on:click={() =>
                             editor.chain().focus().toggleCode().run()}
@@ -184,84 +189,82 @@
                     >
                         Paragraph
                     </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 1 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 1 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H1
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 2 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 2 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H2
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 3 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 3 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H3
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 4 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 4 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H4
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 5 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 5 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H5
-                    </button>
-                    <button
-                        on:click={() =>
-                            editor
-                                .chain()
-                                .focus()
-                                .toggleHeading({ level: 6 })
-                                .run()}
-                        class={(editor.isActive("heading", { level: 6 })
-                            ? "is-active"
-                            : "") + " btn"}
-                    >
-                        H6
-                    </button>
+                    <div class="button-grouping">
+                        H
+                        <button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 1 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 1 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            1
+                        </button><button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 2 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 2 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            2
+                        </button><button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 3 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 3 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            3
+                        </button><button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 4 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 4 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            4
+                        </button><button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 5 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 5 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            5
+                        </button><button
+                            on:click={() =>
+                                editor
+                                    .chain()
+                                    .focus()
+                                    .toggleHeading({ level: 6 })
+                                    .run()}
+                            class={(editor.isActive("heading", { level: 6 })
+                                ? "is-active"
+                                : "") + " btn"}
+                        >
+                            6
+                        </button>
+                    </div>
                     <button
                         on:click={() =>
                             editor.chain().focus().toggleBulletList().run()}
@@ -385,6 +388,9 @@
     }
     .control-group button {
         font-size: 80%;
+    }
+    .control-group > .button-group > button,
+    .control-group > .button-group > div {
         margin: 4px;
     }
     button.active {

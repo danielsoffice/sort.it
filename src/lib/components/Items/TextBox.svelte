@@ -1,48 +1,91 @@
 <script lang="ts">
-    import type { Item } from "$lib/types";
-    import { getContext, onMount } from "svelte";
-    import {preferences} from "$lib/stores";
+    import type { addChildAction, Item } from "$lib/types";
+    import { afterUpdate, getContext, onMount } from "svelte";
+    import { preferences } from "$lib/stores";
 
+    export let id: string;
+    export let focusableElement: HTMLTextAreaElement;
     export let content: Item["content"];
     export let key = "text";
     export let updater: Function;
     export let fake: boolean = false;
-    export let rows: number = 2;
+    // export let rows: number = 2;
 
     $: text = content[key] ?? "";
 
+    type keyboardEvent = KeyboardEvent & {
+        target: EventTarget & HTMLTextAreaElement;
+    };
+
     const deleteFunc: () => void = getContext("deleteFunction");
-    const createFunc: (optionalData?: { [key: string]: any }) => void =
-        getContext("createFunction");
+    const createFunc: addChildAction = getContext("createFunction");
+    const focusJump: Function = getContext("focusJump");
 
     let ctrlPressed = false;
-    function keyPressed(
-        event: KeyboardEvent & {
-            currentTarget: EventTarget & HTMLTextAreaElement;
+    let shiftPressed = false;
+
+    const shortcuts = [
+        {
+            // Deletes item if backspace is pressed when empty
+            keybind: ["Backspace"],
+            action: (event: keyboardEvent) =>
+                event.target.value === "" && deleteFunc(),
         },
-    ) {
-        if (event.key == "Control") {
-            ctrlPressed = true;
-        } else if (event.key == "Backspace") {
-            if (event.currentTarget.value === "") {
-                deleteFunc();
-            }
-        } else if (event.key == "Enter") {
-            if(ctrlPressed)
-            createFunc();
+        {
+            // Creates item after this one
+            keybind: ["Control", "Enter"],
+            action: () => {
+                createFunc({}, { id, placement: 1 });
+                awaitingJump = true;
+            },
+        },
+        {
+            // Creates item after this one
+            keybind: ["Control", "ArrowUp"],
+            action: () => {
+                focusJump(id, -1);
+            },
+        },
+        {
+            // Creates item after this one
+            keybind: ["Control", "ArrowDown"],
+            action: () => {
+                focusJump(id, 1);
+            },
+        },
+    ];
+
+    function eventKeyPressed(event: keyboardEvent) {
+        if (event.key == "Control" || event.key == "Shift") {
+            return;
         }
+
+        let pressedKeybind = [event.key];
+        if (event.shiftKey) pressedKeybind.splice(0, 0, "Shift");
+        if (event.ctrlKey) pressedKeybind.splice(0, 0, "Control");
+
+        shortcuts.forEach((shortcut) => {
+            if (pressedKeybind.length !== shortcut.keybind.length) return;
+            for (let i = 0; i < pressedKeybind.length; i++) {
+                if (pressedKeybind[i] != shortcut.keybind[i]) return;
+            }
+            shortcut.action(event);
+        });
     }
-    function keyUnpressed(
-        event: KeyboardEvent & {
-            currentTarget: EventTarget & HTMLTextAreaElement;
-        },
-    ) {
+    function eventKeyUnpressed(event: keyboardEvent) {
         if (event.key == "Control") {
             ctrlPressed = false;
+        } else if (event.key == "Shift") {
+            shiftPressed = false;
         }
     }
 
-    function textPasted(
+    function eventBlur() {
+        ctrlPressed = false;
+        shiftPressed = false;
+    }
+
+    function eventTextPasted(
         event: ClipboardEvent & {
             currentTarget: EventTarget & HTMLTextAreaElement;
         },
@@ -54,12 +97,17 @@
         const lines = text.split("\n");
         performUpdate(lines.splice(0, 1)[0]);
         lines.forEach((line: string) => {
-            if(line.trim()) createFunc({ content: { text: line } });
+            if (line.trim())
+                createFunc({ content: { text: line } }, { id, placement: 1 });
         });
     }
 
     let saveTimeout: NodeJS.Timeout;
-    function saveContent(event: InputEvent & { currentTarget: EventTarget & HTMLTextAreaElement; }) {
+    function saveContent(
+        event: Event & {
+            currentTarget: EventTarget & HTMLTextAreaElement;
+        },
+    ) {
         if (!mounted) return;
 
         fixHeight();
@@ -85,31 +133,37 @@
         fixHeight();
     });
 
-    function fixHeight(){
-        textarea.style.height = 'calc(1.25rem + 3px)';
-        textarea.style.height = textarea.scrollHeight+1 + "px";
+    let awaitingJump = false;
+
+    afterUpdate(() => {
+        if (awaitingJump) {
+            setTimeout(() => focusJump(id, 1), 1000);
+            awaitingJump = false;
+        }
+    });
+
+    function fixHeight() {
+        focusableElement.style.height = "calc(1.25rem + 3px)";
+        focusableElement.style.height =
+            focusableElement.scrollHeight + 1 + "px";
     }
 
-
-    let textarea: HTMLTextAreaElement;
-
     let fontSize = 0;
-    preferences.subscribe((prefs)=>{
-        if(mounted && fontSize !== prefs.rootFontSize) {
+    preferences.subscribe((prefs) => {
+        if (mounted && fontSize !== prefs.rootFontSize) {
             setTimeout(fixHeight, 350);
         }
         fontSize = prefs.rootFontSize;
     });
-
 </script>
 
 <textarea
     value={text}
     on:input={saveContent}
-    on:keydown={keyPressed}
-    on:keyup={keyUnpressed}
-    on:paste={textPasted}
-    bind:this={textarea}
+    on:keydown={eventKeyPressed}
+    on:paste={eventTextPasted}
+    on:blur={eventBlur}
+    bind:this={focusableElement}
     placeholder={fake ? "Type to Create" : ""}
 />
 

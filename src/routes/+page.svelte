@@ -28,7 +28,7 @@
 
     const id = $page.url.searchParams.get("id");
 
-    if (!id) throw error(404, {message: "no id"});
+    if (!id) throw error(404, { message: "no id" });
 
     let uuid: typeof v5 = id as unknown as typeof v5;
 
@@ -82,9 +82,10 @@
             />
         {/if}
     </QueryClientProvider>
-<!--    <SelectorTable titles={columns} {data} />-->
+    <!--    <SelectorTable titles={columns} {data} />-->
     <!-- <SelectorTree/> -->
 </main>
+
 <!--<RightSideBar />-->
 
 <style>
