@@ -9,7 +9,6 @@
     export let key = "text";
     export let updater: Function;
     export let fake: boolean = false;
-    // export let rows: number = 2;
 
     $: text = content[key] ?? "";
 
@@ -103,11 +102,7 @@
     }
 
     let saveTimeout: NodeJS.Timeout;
-    function saveContent(
-        event: Event & {
-            currentTarget: EventTarget & HTMLTextAreaElement;
-        },
-    ) {
+    function saveContent(event: keyboardEvent) {
         if (!mounted) return;
 
         fixHeight();
